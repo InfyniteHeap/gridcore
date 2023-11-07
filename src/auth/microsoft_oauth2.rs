@@ -2,16 +2,18 @@
 // That means you can not use this module!
 // All of errors will be handled at frontend.
 
+// CURRENT STATUS: XSTS REQUEST CAN RETURN JSON RESPONSE BUT THIS IS AN UNEXPECTED RESPONSE.
+
 use std::collections::HashMap;
 
 use reqwest::{header::*, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-// These constants are URLs that will receive POST (some are GET) requests and response data.
+// These constants are URLs that will receive POST (some are GET) request and response JSON data.
 const FETCH_MICROSOFT_OAUTH2_TOKEN: &str = "https://login.live.com/oauth20_token.srf";
-const XBOX_USER_AUTHENTICATE: &str = "https://user.auth.xboxlive.com/user/authenticate";
-const XSTS_USER_AUTHORIZE: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
+const XBOX_AUTHENTICATE: &str = "https://user.auth.xboxlive.com/user/authenticate";
+const XSTS_AUTHORIZE: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const FETCH_MINECRAFT_ACCESS_TOKEN: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
 const CHECK_IF_PLAYER_OWN_MINECRAFT: &str =
@@ -22,11 +24,11 @@ const FETCH_MINECRAFT_UUID_AND_USERNAME: &str =
 #[derive(Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct MinecraftProfile {
-    // The Minecraft Access Token.
+    // The Minecraft access token.
     pub access_token: String,
     // The UUID which is frequently used to verify a player's identity.
     pub uuid: String,
-    // The username which will be displayed in the game.
+    // The username which will display in the game.
     pub username: String,
 }
 
@@ -41,18 +43,20 @@ pub async fn request_microsoft_oauth2_token(
     );
 
     // The parameters.
-    let mut map = HashMap::new();
-    map.insert("client_id", "00000000402b5328");
-    map.insert("code", authorization_code);
-    map.insert("grant_type", "authorization_code");
-    map.insert("redirect_uri", "https://login.live.com/oauth20_desktop.srf");
-    map.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
+    let mut paras = HashMap::new();
+    paras.insert("client_id", "00000000402b5328");
+    paras.insert("code", authorization_code);
+    paras.insert("grant_type", "authorization_code");
+    paras.insert("redirect_uri", "https://login.live.com/oauth20_desktop.srf");
+    paras.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
 
+    // Send POST request and receive response.
+    // Because the first request should send a HashMap, I didn't use "send_request" function.
     let client = Client::new();
     client
         .post(FETCH_MICROSOFT_OAUTH2_TOKEN)
         .headers(headers)
-        .form(&map)
+        .form(&paras)
         .send()
         .await?
         .text()
@@ -64,7 +68,7 @@ pub async fn request_xbox_authentication(access_token: &str) -> Result<String, r
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
-    let map = json!(
+    let paras = json!(
         {
         "Properties": {
             "AuthMethod": "RPS",
@@ -76,23 +80,20 @@ pub async fn request_xbox_authentication(access_token: &str) -> Result<String, r
         }
     );
 
-    println!("{:#?}", map);
-
-    send_request(Some(headers), Some(map), XBOX_USER_AUTHENTICATE).await
+    send_post_request(Some(headers), Some(paras), XBOX_AUTHENTICATE).await
 }
 
-#[warn(non_snake_case)]
 pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqwest::Error> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
-    let map = json!(
+    let paras = json!(
         {
         "Properties": {
             "SandboxId": "RETAIL",
             "UserTokens": [
-                xbox_token,
+                xbox_token
             ]
         },
         "RelyingParty": "rp://api.minecraftservices.com/",
@@ -100,9 +101,7 @@ pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqw
         }
     );
 
-    println!("{:#?}", map);
-
-    send_request(Some(headers), Some(map), XSTS_USER_AUTHORIZE).await
+    send_post_request(Some(headers), Some(paras), XSTS_AUTHORIZE).await
 }
 
 impl MinecraftProfile {
@@ -119,81 +118,62 @@ impl MinecraftProfile {
         xsts_token: &str,
         uhs: &str,
     ) -> Result<String, reqwest::Error> {
-        let map = json!(
+        let paras = json!(
             {
                 "identityToken": format!("XBL3.0 x={};{}", uhs, xsts_token)
             }
         );
 
-        send_request(None, Some(map), FETCH_MINECRAFT_ACCESS_TOKEN).await
+        send_post_request(None, Some(paras), FETCH_MINECRAFT_ACCESS_TOKEN).await
     }
 
-    pub async fn check_if_player_own_minecraft(&self) -> Result<(), reqwest::Error> {
-        let client = Client::new();
-
-        let _response = client
-            .get(CHECK_IF_PLAYER_OWN_MINECRAFT)
-            .bearer_auth(&self.access_token)
-            .send()
-            .await?
-            .text()
-            .await?;
-        Ok(())
+    pub async fn check_if_player_own_minecraft(&self) -> Result<String, reqwest::Error> {
+        send_get_request(&self.access_token, CHECK_IF_PLAYER_OWN_MINECRAFT).await
     }
 
     pub async fn request_minecraft_uuid_and_username(&self) -> Result<String, reqwest::Error> {
-        let client = Client::new();
-
-        let response = client
-            .get(FETCH_MINECRAFT_UUID_AND_USERNAME)
-            .bearer_auth(&self.access_token)
-            .send()
-            .await?
-            .text()
-            .await?;
-        Ok(response)
+        send_get_request(&self.access_token, FETCH_MINECRAFT_UUID_AND_USERNAME).await
     }
 }
 
-// Send requests and return results.
-pub async fn send_request<T: Serialize>(
+// Send POST requests and return results.
+pub async fn send_post_request<T: Serialize>(
     headers: Option<HeaderMap>,
-    map: Option<T>,
-    target_link: &str,
+    paras: Option<T>,
+    url: &str,
 ) -> Result<String, reqwest::Error> {
+    // Create a client. This is the preparation of sending "POST" request.
     let client = Client::new();
 
-    match (headers, map) {
-        (Some(headers), None) => {
+    // Match cases that whether "headers" exist.
+    match headers {
+        // Case: both "headers" and "paras" exist.
+        Some(headers) => {
             client
-                .post(target_link)
+                .post(url)
                 .headers(headers)
+                .json(&paras)
                 .send()
                 .await?
                 .text()
                 .await
         }
-        (None, Some(map)) => {
-            client
-                .post(target_link)
-                .json(&map)
-                .send()
-                .await?
-                .text()
-                .await
-        }
-        (Some(headers), Some(map)) => {
-            client
-                .post(target_link)
-                .headers(headers)
-                .json(&map)
-                .send()
-                .await?
-                .text()
-                .await
-        }
-        _ => unreachable!(),
+        // Case: only have "paras".
+        None => client.post(url).json(&paras).send().await?.text().await,
     }
+}
+
+// Send GET requests and return results.
+pub async fn send_get_request(token: &str, url: &str) -> Result<String, reqwest::Error> {
+    let client = Client::new();
+
+    client
+        .get(url)
+        .bearer_auth(token)
+        .send()
+        .await?
+        .text()
+        .await
 }
 
 // Transfer responses into JSON, fetch necessary fields and store them in the instance of structure.
