@@ -6,8 +6,8 @@ use tokio::runtime::Runtime;
 
 static mut MICROSOFT_AUTHORIZATION_TOKEN: String = String::new();
 static mut XBOX_AUTHENTICATION_TOKEN: String = String::new();
-static mut XSTS_AUTHORIZATION_TOKEN: String = String::new();
-static mut UHS: String = String::new();
+// static mut XSTS_AUTHORIZATION_TOKEN: String = String::new();
+// static mut UHS: String = String::new();
 
 #[test]
 fn login() {
@@ -18,7 +18,7 @@ fn login() {
 
     match tokio_rt.block_on(request_microsoft_oauth2_token(&auth_code)) {
         Ok(data) => match parse_response(&data) {
-            Ok(data) => match fetch_data(data, "access_token") {
+            Ok(data) => match fetch_value(data, "access_token") {
                 // This string should be used in the next step and be taken out of this nest.
                 Some(value) => unsafe { MICROSOFT_AUTHORIZATION_TOKEN = value },
                 // Eject a dialog to prompt user "Failed to fetch data from response!".
@@ -38,7 +38,7 @@ fn login() {
     })) {
         Ok(data) => match parse_response(&data) {
             Ok(data) => {
-                match fetch_data(data.clone(), "Token") {
+                match fetch_value(data.clone(), "Token") {
                     // This string should be used in the next step and be taken out of this nest.
                     Some(value) => unsafe { XBOX_AUTHENTICATION_TOKEN = value },
                     // Eject a dialog to prompt user "Failed to fetch data from response!".
