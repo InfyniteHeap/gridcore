@@ -1,6 +1,7 @@
-// use std::future::Future;
+use std::future::Future;
 
 use gridcore::auth::microsoft_oauth2::*;
+use gridcore::json::*;
 
 use tokio::runtime::Runtime;
 
@@ -16,49 +17,44 @@ fn login() {
     // Suppose there is a string that holds a Microsoft authorization code.
     let auth_code = "".to_string();
 
-    match tokio_rt.block_on(request_microsoft_oauth2_token(&auth_code)) {
+    tokio_rt.block_on(send_and_parse_data(
+        request_microsoft_oauth2_token,
+        &auth_code,
+        "access_token",
+        unsafe { &mut MICROSOFT_AUTHORIZATION_TOKEN },
+        "err_msg",
+    ));
+
+    println!("{:#?}\n", unsafe { &MICROSOFT_AUTHORIZATION_TOKEN });
+
+    tokio_rt.block_on(send_and_parse_data(
+        request_xbox_authentication,
+        unsafe { &MICROSOFT_AUTHORIZATION_TOKEN },
+        "Token",
+        unsafe { &mut XBOX_AUTHENTICATION_TOKEN },
+        "err_msg",
+    ));
+
+    println!("{:#?}\n", unsafe { &XBOX_AUTHENTICATION_TOKEN });
+}
+
+async fn send_and_parse_data<'a, F: Fn(&'a str) -> Fut, Fut>(
+    func: F,
+    para: &'a str,
+    key: &str,
+    val: &mut String,
+    err_msg: &str,
+) where
+    Fut: Future<Output = Result<String, reqwest::Error>>,
+{
+    match func(para).await {
         Ok(data) => match parse_response(&data) {
-            Ok(data) => match fetch_value(data, "access_token") {
+            Ok(data) => match fetch_value(data.clone(), key) {
                 // This string should be used in the next step and be taken out of this nest.
-                Some(value) => unsafe { MICROSOFT_AUTHORIZATION_TOKEN = value },
-                // Eject a dialog to prompt user "Failed to fetch data from response!".
-                None => panic!("No contents from MS"),
+                Some(v) => *val = v,
+                // Eject a dialog to prompt user "Failed to fetch data from response!"
+                None => panic!("{err_msg}"),
             },
-            // Eject a dialog to prompt user "Failed to parse response: e".
-            Err(e) => panic!("{e}"),
-        },
-        // Eject a dialog to prompt user "Failed fetch response from remote: e".
-        Err(e) => panic!("{e}"),
-    }
-
-    println!("{}", unsafe { &MICROSOFT_AUTHORIZATION_TOKEN });
-
-    match tokio_rt.block_on(request_xbox_authentication(unsafe {
-        &MICROSOFT_AUTHORIZATION_TOKEN
-    })) {
-        Ok(data) => match parse_response(&data) {
-            Ok(data) => {
-                match fetch_value(data.clone(), "Token") {
-                    // This string should be used in the next step and be taken out of this nest.
-                    Some(value) => unsafe { XBOX_AUTHENTICATION_TOKEN = value },
-                    // Eject a dialog to prompt user "Failed to fetch data from response!".
-                    None => panic!("No contents from XBOX"),
-                }
-            }
-            // Eject a dialog to prompt user "Failed to parse response: e".
-            Err(e) => panic!("{e}"),
-        },
-        // Eject a dialog to prompt user "Failed fetch response from remote: e".
-        Err(e) => panic!("{e}"),
-    }
-
-    println!("{}", unsafe { &XBOX_AUTHENTICATION_TOKEN });
-
-    match tokio_rt.block_on(request_xsts_authorization(unsafe {
-        &XBOX_AUTHENTICATION_TOKEN
-    })) {
-        Ok(data) => match parse_response(&data) {
-            Ok(data) => println!("{:#?}", data),
             // Eject a dialog to prompt user "Failed to parse response: e".
             Err(e) => panic!("{e}"),
         },

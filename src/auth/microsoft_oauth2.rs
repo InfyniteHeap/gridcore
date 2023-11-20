@@ -8,7 +8,9 @@ use std::collections::HashMap;
 
 use reqwest::{header::*, Client};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
+
+use crate::https::*;
 
 // These constants are URLs that will receive POST (some are GET) request and response JSON data.
 const REQUEST_MICROSOFT_OAUTH2_TOKEN: &str = "https://login.live.com/oauth20_token.srf";
@@ -126,64 +128,13 @@ impl MinecraftProfile {
         send_post_request(None, Some(paras), REQUEST_MINECRAFT_ACCESS_TOKEN).await
     }
 
+    #[inline]
     pub async fn check_if_player_own_minecraft(&self) -> Result<String, reqwest::Error> {
         send_get_request(&self.access_token, CHECK_IF_PLAYER_OWN_MINECRAFT).await
     }
 
+    #[inline]
     pub async fn request_minecraft_uuid_and_username(&self) -> Result<String, reqwest::Error> {
         send_get_request(&self.access_token, REQUEST_MINECRAFT_UUID_AND_USERNAME).await
     }
-}
-
-// Send POST requests and return results.
-pub async fn send_post_request<T: Serialize>(
-    headers: Option<HeaderMap>,
-    paras: Option<T>,
-    url: &str,
-) -> Result<String, reqwest::Error> {
-    // Match cases that whether "headers" exist.
-    match headers {
-        // Case: both "headers" and "paras" exist.
-        Some(headers) => {
-            Client::new()
-                .post(url)
-                .headers(headers)
-                .json(&paras)
-                .send()
-                .await?
-                .text()
-                .await
-        }
-        // Case: only have "paras".
-        None => {
-            Client::new()
-                .post(url)
-                .json(&paras)
-                .send()
-                .await?
-                .text()
-                .await
-        }
-    }
-}
-
-// Send GET requests and return results.
-pub async fn send_get_request(token: &str, url: &str) -> Result<String, reqwest::Error> {
-    Client::new()
-        .get(url)
-        .bearer_auth(token)
-        .send()
-        .await?
-        .text()
-        .await
-}
-
-// Transfer responses into JSON text, fetch necessary fields and store them in the instance of structure.
-// Use turbofish syntax to simplify data processing.
-pub fn parse_response(response: &str) -> Result<Value, serde_json::Error> {
-    serde_json::from_str::<Value>(response)
-}
-
-pub fn fetch_value(json_text: Value, key: &str) -> Option<String> {
-    Some(json_text.get(key)?.to_string())
 }
