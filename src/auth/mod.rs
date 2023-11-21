@@ -42,33 +42,4 @@
 
 mod microsoft_oauth2;
 
-use std::future::Future;
-
 pub use self::microsoft_oauth2::*;
-use crate::json::*;
-
-pub async fn send_and_parse_data<'a, F, Fut>(
-    func: F,
-    para: &'a str,
-    key: &str,
-    err_msg: &str,
-) -> String
-where
-    F: Fn(&'a str) -> Fut,
-    Fut: Future<Output = Result<String, reqwest::Error>>,
-{
-    match func(para).await {
-        Ok(data) => match parse_response(&data) {
-            Ok(data) => match fetch_value(data.clone(), key) {
-                // This string should be used in the next step and be taken out of this nest.
-                Some(val) => val,
-                // Eject a dialog to prompt user "Failed to fetch data from response!"
-                None => panic!("{err_msg}"),
-            },
-            // Eject a dialog to prompt user "Failed to parse response: e".
-            Err(e) => panic!("{e}"),
-        },
-        // Eject a dialog to prompt user "Failed fetch response from remote: e".
-        Err(e) => panic!("{e}"),
-    }
-}

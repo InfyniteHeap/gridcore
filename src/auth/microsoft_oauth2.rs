@@ -41,12 +41,12 @@ pub async fn request_microsoft_oauth2_token(
     );
 
     // The parameters.
-    let mut paras = HashMap::new();
-    paras.insert("client_id", "00000000402b5328");
-    paras.insert("code", authorization_code);
-    paras.insert("grant_type", "authorization_code");
-    paras.insert("redirect_uri", "https://login.live.com/oauth20_desktop.srf");
-    paras.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
+    let mut load = HashMap::new();
+    load.insert("client_id", "00000000402b5328");
+    load.insert("code", authorization_code);
+    load.insert("grant_type", "authorization_code");
+    load.insert("redirect_uri", "https://login.live.com/oauth20_desktop.srf");
+    load.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
 
     // Send POST request and receive response.
     // Because the first request should send a HashMap,
@@ -54,7 +54,7 @@ pub async fn request_microsoft_oauth2_token(
     Client::new()
         .post(REQUEST_MICROSOFT_OAUTH2_TOKEN)
         .headers(headers)
-        .form(&paras)
+        .form(&load)
         .send()
         .await?
         .text()
@@ -66,7 +66,7 @@ pub async fn request_xbox_authentication(access_token: &str) -> Result<String, r
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
-    let paras = json!(
+    let load = json!(
         {
         "Properties": {
             "AuthMethod": "RPS",
@@ -78,7 +78,7 @@ pub async fn request_xbox_authentication(access_token: &str) -> Result<String, r
         }
     );
 
-    send_post_request(Some(headers), Some(paras), XBOX_AUTHENTICATE).await
+    send_post_request(Some(headers), Some(load), XBOX_AUTHENTICATE).await
 }
 
 pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqwest::Error> {
@@ -86,7 +86,7 @@ pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqw
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
-    let paras = json!(
+    let load = json!(
         {
         "Properties": {
             "SandboxId": "RETAIL",
@@ -99,7 +99,7 @@ pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqw
         }
     );
 
-    send_post_request(Some(headers), Some(paras), XSTS_AUTHORIZE).await
+    send_post_request(Some(headers), Some(load), XSTS_AUTHORIZE).await
 }
 
 impl MinecraftProfile {
@@ -116,13 +116,13 @@ impl MinecraftProfile {
         xsts_token: &str,
         uhs: &str,
     ) -> Result<String, reqwest::Error> {
-        let paras = json!(
+        let load = json!(
             {
                 "identityToken": format!("XBL3.0 x={};{}", uhs, xsts_token)
             }
         );
 
-        send_post_request(None, Some(paras), REQUEST_MINECRAFT_ACCESS_TOKEN).await
+        send_post_request(None, Some(load), REQUEST_MINECRAFT_ACCESS_TOKEN).await
     }
 
     pub async fn check_if_player_own_minecraft(&self) -> Result<String, reqwest::Error> {
