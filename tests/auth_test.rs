@@ -48,7 +48,7 @@ where
     match func(para).await {
         Ok(data) => match parse_response(&data) {
             Ok(data) => match fetch_value(data.clone(), key) {
-                // This string should be used in the next step and be taken out of this nest.
+                // This string should be used for the next step.
                 Some(val) => val,
                 // Eject a dialog to prompt user "Failed to fetch data from response!"
                 None => panic!("{err_msg}"),
