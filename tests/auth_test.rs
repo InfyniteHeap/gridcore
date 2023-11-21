@@ -29,7 +29,7 @@ fn login_test() {
 
     println!("{:#?}\n", &xbox_authentication_token);
 
-    // This is only a temporary method, aming to check parsing errors.
+    // This is only a temporary method, aiming to check parsing errors.
     match tokio_rt.block_on(request_xsts_authorization(&xbox_authentication_token)) {
         Ok(data) => match parse_response(&data) {
             Ok(data) => println!("{:#?}", data),
