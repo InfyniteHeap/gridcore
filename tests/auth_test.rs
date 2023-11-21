@@ -29,14 +29,14 @@ fn login_test() {
 
     println!("{:#?}\n", &xbox_authentication_token);
 
-    // This is only a temporary method, aiming to check parsing errors.
-    match tokio_rt.block_on(request_xsts_authorization(&xbox_authentication_token)) {
-        Ok(data) => match parse_response(&data) {
-            Ok(data) => println!("{:#?}", data),
-            Err(e) => panic!("{e}"),
-        },
-        Err(e) => panic!("{e}"),
-    }
+    let xsts_authorization_token = tokio_rt.block_on(send_and_parse_data(
+        request_xsts_authorization,
+        &xbox_authentication_token,
+        "Token",
+        "Value not found!",
+    ));
+
+    println!("{:#?}\n", &xsts_authorization_token);
 }
 
 // This function will may be seperated as it is too complicated!
