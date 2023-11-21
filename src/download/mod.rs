@@ -1,8 +1,7 @@
 mod mc_dl_addr;
 
-use crate::file_system::*;
-
 use self::mc_dl_addr::*;
+use crate::file_system::*;
 
 pub enum McResDlAddr {
     Official,

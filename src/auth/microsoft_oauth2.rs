@@ -1,8 +1,4 @@
-// This module is a rather early implementation!!!
-// That means you can not use this module!
-// All of errors will be handled at frontend.
-
-// CURRENT STATUS: XSTS REQUEST CAN RETURN JSON RESPONSE BUT THIS IS AN UNEXPECTED RESPONSE.
+// CURRENT STATUS: XSTS REQUEST CAN RETURN JSON RESPONSE BUT NOT THE EXPECTED ONE.
 
 use std::collections::HashMap;
 
@@ -12,7 +8,7 @@ use serde_json::json;
 
 use crate::https::*;
 
-// These constants are URLs that will receive POST (some are GET) request and response JSON data.
+// These constants are URLs that will receive POST (some are GET) request and return response.
 const REQUEST_MICROSOFT_OAUTH2_TOKEN: &str = "https://login.live.com/oauth20_token.srf";
 const XBOX_AUTHENTICATE: &str = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_AUTHORIZE: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
@@ -53,7 +49,8 @@ pub async fn request_microsoft_oauth2_token(
     paras.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
 
     // Send POST request and receive response.
-    // Because the first request should send a HashMap, function "send_post_request" is not used here.
+    // Because the first request should send a HashMap,
+    // function "send_post_request" is not used here.
     Client::new()
         .post(REQUEST_MICROSOFT_OAUTH2_TOKEN)
         .headers(headers)
@@ -128,12 +125,10 @@ impl MinecraftProfile {
         send_post_request(None, Some(paras), REQUEST_MINECRAFT_ACCESS_TOKEN).await
     }
 
-    #[inline]
     pub async fn check_if_player_own_minecraft(&self) -> Result<String, reqwest::Error> {
         send_get_request(&self.access_token, CHECK_IF_PLAYER_OWN_MINECRAFT).await
     }
 
-    #[inline]
     pub async fn request_minecraft_uuid_and_username(&self) -> Result<String, reqwest::Error> {
         send_get_request(&self.access_token, REQUEST_MINECRAFT_UUID_AND_USERNAME).await
     }

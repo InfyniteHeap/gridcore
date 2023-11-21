@@ -1,57 +1,55 @@
 use std::future::Future;
 
-use gridcore::auth::microsoft_oauth2::*;
-use gridcore::json::*;
+use gridcore::{auth::*, json::*};
 
 use tokio::runtime::Runtime;
 
-static mut MICROSOFT_AUTHORIZATION_TOKEN: String = String::new();
-static mut XBOX_AUTHENTICATION_TOKEN: String = String::new();
-// static mut XSTS_AUTHORIZATION_TOKEN: String = String::new();
-// static mut UHS: String = String::new();
-
 #[test]
-fn login() {
+fn login_test() {
     // Create a Tokio runtime.
     let tokio_rt = Runtime::new().unwrap();
-    // Suppose there is a string that holds a Microsoft authorization code.
+    // Assume there is a string that contains a Microsoft authorization code.
     let auth_code = "".to_string();
 
-    tokio_rt.block_on(send_and_parse_data(
+    let microsoft_authorization_token = tokio_rt.block_on(send_and_parse_data(
         request_microsoft_oauth2_token,
         &auth_code,
         "access_token",
-        unsafe { &mut MICROSOFT_AUTHORIZATION_TOKEN },
-        "err_msg",
+        "Value not found!",
     ));
 
-    println!("{:#?}\n", unsafe { &MICROSOFT_AUTHORIZATION_TOKEN });
+    println!("{:#?}\n", &microsoft_authorization_token);
 
-    tokio_rt.block_on(send_and_parse_data(
+    let xbox_authentication_token = tokio_rt.block_on(send_and_parse_data(
         request_xbox_authentication,
-        unsafe { &MICROSOFT_AUTHORIZATION_TOKEN },
+        &microsoft_authorization_token,
         "Token",
-        unsafe { &mut XBOX_AUTHENTICATION_TOKEN },
-        "err_msg",
+        "Value not found!",
     ));
 
-    println!("{:#?}\n", unsafe { &XBOX_AUTHENTICATION_TOKEN });
+    println!("{:#?}\n", &xbox_authentication_token);
+
+    // This is only a temporary method, aming to check parsing errors.
+    match tokio_rt.block_on(request_xsts_authorization(&xbox_authentication_token)) {
+        Ok(data) => match parse_response(&data) {
+            Ok(data) => println!("{:#?}", data),
+            Err(e) => panic!("{e}"),
+        },
+        Err(e) => panic!("{e}"),
+    }
 }
 
-async fn send_and_parse_data<'a, F: Fn(&'a str) -> Fut, Fut>(
-    func: F,
-    para: &'a str,
-    key: &str,
-    val: &mut String,
-    err_msg: &str,
-) where
+// This function will may be seperated as it is too complicated!
+async fn send_and_parse_data<'a, F, Fut>(func: F, para: &'a str, key: &str, err_msg: &str) -> String
+where
+    F: Fn(&'a str) -> Fut,
     Fut: Future<Output = Result<String, reqwest::Error>>,
 {
     match func(para).await {
         Ok(data) => match parse_response(&data) {
             Ok(data) => match fetch_value(data.clone(), key) {
                 // This string should be used in the next step and be taken out of this nest.
-                Some(v) => *val = v,
+                Some(val) => val,
                 // Eject a dialog to prompt user "Failed to fetch data from response!"
                 None => panic!("{err_msg}"),
             },
