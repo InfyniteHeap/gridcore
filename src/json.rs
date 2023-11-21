@@ -19,5 +19,9 @@ pub fn parse_response(response: &str) -> Result<Value, serde_json::Error> {
 
 #[inline]
 pub fn fetch_value(json_text: Value, key: &str) -> Option<String> {
-    Some(json_text.get(key)?.to_string())
+    if let Some(Value::String(val)) = json_text.get(key) {
+        Some(val.to_owned())
+    } else {
+        None
+    }
 }
