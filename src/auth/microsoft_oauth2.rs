@@ -1,5 +1,3 @@
-// CURRENT STATUS: XSTS REQUEST CAN RETURN JSON RESPONSE BUT NOT THE EXPECTED ONE.
-
 use std::collections::HashMap;
 
 use reqwest::{header::*, Client};
@@ -22,15 +20,16 @@ const REQUEST_MINECRAFT_UUID_AND_USERNAME: &str =
 #[derive(Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct MinecraftProfile {
-    // The Minecraft access token.
+    /// The Minecraft access token.
     pub access_token: String,
-    // The UUID which is frequently used to verify a player's identity.
+    /// The UUID which is frequently used to verify a player's identity.
     pub uuid: String,
-    // The username which will display in the game.
+    /// The username which will display in the game.
     pub username: String,
 }
 
-pub async fn request_microsoft_oauth2_token(
+/// Microsoft authorization code -> Microsoft authorization token
+pub async fn request_microsoft_oauth2_response(
     authorization_code: &str,
 ) -> Result<String, reqwest::Error> {
     // The request header.
@@ -40,7 +39,7 @@ pub async fn request_microsoft_oauth2_token(
         HeaderValue::from_static("application/x-www-form-urlencoded"),
     );
 
-    // The parameters.
+    // The load that will be summitted.
     let mut load = HashMap::new();
     load.insert("client_id", "00000000402b5328");
     load.insert("code", authorization_code);
@@ -61,7 +60,10 @@ pub async fn request_microsoft_oauth2_token(
         .await
 }
 
-pub async fn request_xbox_authentication(access_token: &str) -> Result<String, reqwest::Error> {
+/// Microsoft authorization token -> Xbox token
+pub async fn request_xbox_authentication_response(
+    access_token: &str,
+) -> Result<String, reqwest::Error> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
@@ -81,7 +83,10 @@ pub async fn request_xbox_authentication(access_token: &str) -> Result<String, r
     send_post_request(Some(headers), Some(load), XBOX_AUTHENTICATE).await
 }
 
-pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqwest::Error> {
+/// Xbox token -> UHS, XSTS token
+pub async fn request_xsts_authorization_response(
+    xbox_token: &str,
+) -> Result<String, reqwest::Error> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
@@ -103,16 +108,9 @@ pub async fn request_xsts_authorization(xbox_token: &str) -> Result<String, reqw
 }
 
 impl MinecraftProfile {
-    pub fn new() -> Self {
-        Self {
-            access_token: String::new(),
-            uuid: String::new(),
-            username: String::new(),
-        }
-    }
-
-    pub async fn request_minecraft_access_token(
-        &mut self,
+    /// UHS, XSTS token -> Minecraft access token
+    pub async fn request_minecraft_access_token_response(
+        &self,
         xsts_token: &str,
         uhs: &str,
     ) -> Result<String, reqwest::Error> {
@@ -125,11 +123,15 @@ impl MinecraftProfile {
         send_post_request(None, Some(load), REQUEST_MINECRAFT_ACCESS_TOKEN).await
     }
 
+    /// Minecraft access token
     pub async fn check_if_player_own_minecraft(&self) -> Result<String, reqwest::Error> {
         send_get_request(&self.access_token, CHECK_IF_PLAYER_OWN_MINECRAFT).await
     }
 
-    pub async fn request_minecraft_uuid_and_username(&self) -> Result<String, reqwest::Error> {
+    /// Minecraft access token -> Minecraft username, Minecraft UUID
+    pub async fn request_minecraft_uuid_and_username_response(
+        &self,
+    ) -> Result<String, reqwest::Error> {
         send_get_request(&self.access_token, REQUEST_MINECRAFT_UUID_AND_USERNAME).await
     }
 }

@@ -1,7 +1,7 @@
 use reqwest::{header::HeaderMap, Client};
 use serde::Serialize;
 
-// Send POST requests and return results.
+/// Send POST request and receive response.
 pub async fn send_post_request<T: Serialize>(
     headers: Option<HeaderMap>,
     load: Option<T>,
@@ -33,7 +33,7 @@ pub async fn send_post_request<T: Serialize>(
     }
 }
 
-// Send GET requests and return results.
+/// Send GET request and receive response.
 pub async fn send_get_request(token: &str, url: &str) -> Result<String, reqwest::Error> {
     Client::new()
         .get(url)
