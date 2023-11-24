@@ -12,6 +12,7 @@ fn login_test() {
     // Assume there is a string that contains a Microsoft authorization code.
     let auth_code = "".to_string();
 
+    // Fetch microsoft_authorization_token.
     let microsoft_oauth2_response = tokio_rt.block_on(fetch_response_from_remote(
         request_microsoft_oauth2_response,
         &auth_code,
@@ -19,8 +20,7 @@ fn login_test() {
     let microsoft_json_response = parse_response(&microsoft_oauth2_response);
     let microsoft_authorization_token = extract_value(&microsoft_json_response, "access_token");
 
-    println!("{:#?}\n", &microsoft_authorization_token);
-
+    // Fetch xbox_authentication_token.
     let xbox_response = tokio_rt.block_on(fetch_response_from_remote(
         request_xbox_authentication_response,
         &microsoft_authorization_token,
@@ -28,8 +28,7 @@ fn login_test() {
     let xbox_json_response = parse_response(&xbox_response);
     let xbox_authentication_token = extract_value(&xbox_json_response, "Token");
 
-    println!("{:#?}\n", &xbox_authentication_token);
-
+    // Fetch uhs and xsts_authorization_token.
     let xsts_response = tokio_rt.block_on(fetch_response_from_remote(
         request_xsts_authorization_response,
         &xbox_authentication_token,
@@ -38,11 +37,9 @@ fn login_test() {
     let uhs = extract_uhs(&xsts_json_response);
     let xsts_authorization_token = extract_value(&xsts_json_response, "Token");
 
-    println!("{:#?}\n", &uhs);
-    println!("{:#?}\n", &xsts_authorization_token);
-
     let mut minecraft_profile: MinecraftProfile = Default::default();
 
+    // Fetch minecraft_access_token.
     match tokio_rt.block_on(
         minecraft_profile.request_minecraft_access_token_response(&xsts_authorization_token, &uhs),
     ) {
@@ -54,8 +51,7 @@ fn login_test() {
         Err(e) => panic!("{e}"),
     }
 
-    println!("{:#?}\n", &minecraft_profile.access_token);
-
+    // Fetch minecraft_uuid_and_username.
     match tokio_rt.block_on(minecraft_profile.request_minecraft_uuid_and_username_response()) {
         Ok(response) => {
             let minecraft_json_response2 = parse_response(&response);
@@ -67,7 +63,7 @@ fn login_test() {
 
     let minecraft_response = serialize_to_json(minecraft_profile).unwrap();
 
-    println!("{}\n", &minecraft_response);
+    println!("{}", &minecraft_response);
 }
 
 // Functions below will explicitly handle all of errors.
