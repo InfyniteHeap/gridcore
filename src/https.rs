@@ -2,7 +2,7 @@ use reqwest::{header::HeaderMap, Client};
 use serde::Serialize;
 
 /// Send POST request and receive response.
-pub async fn send_post_request<T: Serialize>(
+pub(crate) async fn send_post_request<T: Serialize>(
     headers: Option<HeaderMap>,
     load: Option<T>,
     url: &str,
@@ -34,7 +34,7 @@ pub async fn send_post_request<T: Serialize>(
 }
 
 /// Send GET request and receive response.
-pub async fn send_get_request(token: &str, url: &str) -> Result<String, reqwest::Error> {
+pub(crate) async fn send_get_request(token: &str, url: &str) -> Result<String, reqwest::Error> {
     Client::new()
         .get(url)
         .bearer_auth(token)
