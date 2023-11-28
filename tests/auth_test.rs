@@ -18,7 +18,7 @@ fn login_test() {
         &auth_code,
     ));
     let microsoft_json_response = parse_response(&microsoft_oauth2_response);
-    let microsoft_authorization_token = extract_value(&microsoft_json_response, "access_token");
+    let microsoft_authorization_token = extract_value(&microsoft_json_response, &["access_token"]);
 
     // Fetch xbox_authentication_token.
     let xbox_response = tokio_rt.block_on(fetch_response_from_remote(
@@ -26,7 +26,7 @@ fn login_test() {
         &microsoft_authorization_token,
     ));
     let xbox_json_response = parse_response(&xbox_response);
-    let xbox_authentication_token = extract_value(&xbox_json_response, "Token");
+    let xbox_authentication_token = extract_value(&xbox_json_response, &["Token"]);
 
     // Fetch uhs and xsts_authorization_token.
     let xsts_response = tokio_rt.block_on(fetch_response_from_remote(
@@ -34,8 +34,8 @@ fn login_test() {
         &xbox_authentication_token,
     ));
     let xsts_json_response = parse_response(&xsts_response);
-    let uhs = extract_uhs(&xsts_json_response);
-    let xsts_authorization_token = extract_value(&xsts_json_response, "Token");
+    let uhs = extract_value(&xsts_json_response, &["DisplayClaims", "xui", "0", "uhs"]);
+    let xsts_authorization_token = extract_value(&xsts_json_response, &["Token"]);
 
     let mut minecraft_profile: MinecraftProfile = Default::default();
 
@@ -46,7 +46,7 @@ fn login_test() {
         Ok(response) => {
             let minecraft_json_response = parse_response(&response);
             minecraft_profile.access_token =
-                extract_value(&minecraft_json_response, "access_token");
+                extract_value(&minecraft_json_response, &["access_token"]);
         }
         Err(e) => panic!("{e}"),
     }
@@ -55,8 +55,8 @@ fn login_test() {
     match tokio_rt.block_on(minecraft_profile.request_minecraft_uuid_and_username_response()) {
         Ok(response) => {
             let minecraft_json_response2 = parse_response(&response);
-            minecraft_profile.uuid = extract_value(&minecraft_json_response2, "id");
-            minecraft_profile.username = extract_value(&minecraft_json_response2, "name");
+            minecraft_profile.uuid = extract_value(&minecraft_json_response2, &["id"]);
+            minecraft_profile.username = extract_value(&minecraft_json_response2, &["name"]);
         }
         Err(e) => panic!("{e}"),
     }
@@ -87,18 +87,24 @@ fn parse_response(response: &str) -> Value {
     }
 }
 
-fn extract_value(json_text: &Value, key: &str) -> String {
-    match json_text[key].to_owned() {
-        Value::String(val) => val,
-        // This should eject a window that prompt user "Failed to extract value from returned json: {}!".
-        _ => panic!("Failed to extract value from returned json: {}!", key),
-    }
-}
-
-fn extract_uhs(json_text: &Value) -> String {
-    match json_text["DisplayClaims"]["xui"][0]["uhs"].to_owned() {
-        Value::String(val) => val,
-        // This should eject a window that prompt user "Failed to extract value from returned json: uhs!".
-        _ => panic!("Failed to extract value from returned json: uhs!"),
-    }
+fn extract_value(json_text: &Value, keys: &[&str]) -> String {
+    keys.iter()
+        .try_fold(json_text, |acc, &key| {
+            if let Ok(index) = key.parse::<usize>() {
+                acc.as_array().and_then(|val| val.get(index))
+            } else {
+                acc.as_object().and_then(|val| val.get(key))
+            }
+        })
+        .and_then(|val| match val {
+            Value::String(s) => Some(s.to_owned()),
+            _ => None,
+        })
+        .unwrap_or_else(|| {
+            let key_path: Vec<_> = keys.iter().map(|&k| k.to_string()).collect();
+            panic!(
+                "Failed to extract value from returned json: {}!",
+                key_path.join("\"][\"")
+            )
+        })
 }
