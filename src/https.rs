@@ -1,10 +1,10 @@
 use reqwest::{header::HeaderMap, Client};
-use serde::Serialize;
+use serde_json::Value;
 
 /// Send POST request and receive response.
-pub(crate) async fn send_post_request<T: Serialize>(
+pub(crate) async fn send_post_request(
     headers: Option<HeaderMap>,
-    load: Option<T>,
+    load: Value,
     url: &str,
 ) -> Result<String, reqwest::Error> {
     // Match cases that whether "headers" exist.

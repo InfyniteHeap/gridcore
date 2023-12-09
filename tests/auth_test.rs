@@ -67,12 +67,12 @@ fn login_test() {
 }
 
 // Functions below will explicitly handle all of errors.
-async fn fetch_response_from_remote<'a, F, Fut>(func: F, para_for_func: &'a str) -> String
+async fn fetch_response_from_remote<'a, F, Fut>(func: F, param_for_func: &'a str) -> String
 where
     F: Fn(&'a str) -> Fut,
     Fut: Future<Output = Result<String, reqwest::Error>>,
 {
-    match func(para_for_func).await {
+    match func(param_for_func).await {
         Ok(data) => data,
         // This should eject a window that prompt user "Failed to fetch response from remote!" and other details.
         Err(e) => panic!("{e}"),

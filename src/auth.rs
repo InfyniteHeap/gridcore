@@ -122,7 +122,7 @@ pub async fn request_xbox_authentication_response(
         }
     );
 
-    send_post_request(Some(headers), Some(load), XBOX_AUTHENTICATE).await
+    send_post_request(Some(headers), load, XBOX_AUTHENTICATE).await
 }
 
 /// Xbox token -> UHS, XSTS token
@@ -146,7 +146,7 @@ pub async fn request_xsts_authorization_response(
         }
     );
 
-    send_post_request(Some(headers), Some(load), XSTS_AUTHORIZE).await
+    send_post_request(Some(headers), load, XSTS_AUTHORIZE).await
 }
 
 impl MinecraftProfile {
@@ -162,7 +162,7 @@ impl MinecraftProfile {
             }
         );
 
-        send_post_request(None, Some(load), REQUEST_MINECRAFT_ACCESS_TOKEN).await
+        send_post_request(None, load, REQUEST_MINECRAFT_ACCESS_TOKEN).await
     }
 
     /// Minecraft access token
