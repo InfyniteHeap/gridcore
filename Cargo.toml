@@ -4,6 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.release]
+lto = "fat"
+incremental = true
 
 [dependencies]
 serde = { version = "1.0.193", features = ["derive"] }
