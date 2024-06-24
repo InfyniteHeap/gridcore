@@ -1,0 +1,26 @@
+[package]
+name = "gridcore"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.release]
+incremental = true
+lto = "fat"
+panic = "abort"
+
+[dependencies]
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0.111"
+reqwest = { version = "0.11.23", features = ["json"] }
+jni = "0.21.1"
+zip = "0.6.6"
+log = "0.4.20"
+tokio = { version = "1.35.1", features = ["rt-multi-thread"] }
+sha1 = "0.10.6"
+fs-err = "2.11.0"
+anyhow = "1.0.79"
