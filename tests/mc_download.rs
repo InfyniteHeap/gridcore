@@ -3,7 +3,7 @@ use tokio::runtime::Runtime;
 use gridcore::download::game::*;
 
 #[test]
-fn download_mc_version_manifest_test() -> anyhow::Result<()> {
+fn download_mc() -> anyhow::Result<()> {
     let ins = McResDlAddr::Official;
 
     let tokio_rt = Runtime::new().unwrap();
@@ -15,7 +15,19 @@ fn download_mc_version_manifest_test() -> anyhow::Result<()> {
 
     let result = list_versions()?;
 
-    println!("{:?}", result);
+    println!(
+        "{:?}",
+        result
+            .into_iter()
+            .filter(|r| r.1
+                == MinecraftVersionType::minecraft_version_type(MinecraftVersionType::Release))
+            .collect::<Vec<(String, String)>>()
+    );
+
+    match tokio_rt.block_on(download_specific_mc_version_manifest("1.21")) {
+        Ok(()) => (),
+        Err(e) => panic!("{:#?}", e),
+    }
 
     Ok(())
 }
