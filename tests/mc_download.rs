@@ -19,8 +19,7 @@ fn download_mc() -> anyhow::Result<()> {
         "{:?}",
         result
             .into_iter()
-            .filter(|r| r.1
-                == MinecraftVersionType::minecraft_version_type(MinecraftVersionType::Release))
+            .filter(|r| r.1 == minecraft_version_type(MinecraftVersionType::Release))
             .collect::<Vec<(String, String)>>()
     );
 

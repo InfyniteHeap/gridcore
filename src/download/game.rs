@@ -27,13 +27,11 @@ pub enum MinecraftVersionType {
     OldAlpha,
 }
 
-impl MinecraftVersionType {
-    pub fn minecraft_version_type(self) -> &'static str {
-        match self {
-            Self::Release => "release",
-            Self::Snapshot => "snapshot",
-            Self::OldAlpha => "old_alpha",
-        }
+pub fn minecraft_version_type(ty: MinecraftVersionType) -> &'static str {
+    match ty {
+        MinecraftVersionType::Release => "release",
+        MinecraftVersionType::Snapshot => "snapshot",
+        MinecraftVersionType::OldAlpha => "old_alpha",
     }
 }
 
