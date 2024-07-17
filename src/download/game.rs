@@ -66,9 +66,7 @@ pub async fn download_version_manifest() -> anyhow::Result<()> {
     let manifest_path = Path::new(&manifest_path);
     let manifest_name = "version_manifest_v2.json";
 
-    if !manifest_path.join(manifest_name).exists() {
-        super::download_file(manifest_path, manifest_name, &url).await?;
-    }
+    super::download_file(manifest_path, manifest_name, &url, None).await?;
 
     Ok(())
 }
@@ -110,8 +108,8 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
             None => return Err(anyhow::Error::msg("Failed to get id!")),
         } == version
         {
-            match ver.get("url") {
-                Some(Value::String(url)) => {
+            match (ver.get("url"), ver.get("sha1")) {
+                (Some(Value::String(url)), Some(Value::String(sha1))) => {
                     let mut url = url.to_owned();
 
                     match *DOWNLOAD_SOURCE.lock().await {
@@ -125,9 +123,7 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
 
                     let manifest_name = format!("{}.json", version);
 
-                    if !manifest_path.join(&manifest_name).exists() {
-                        super::download_file(manifest_path, &manifest_name, &url).await?;
-                    }
+                    super::download_file(manifest_path, &manifest_name, &url, Some(sha1)).await?;
                 }
                 _ => return Err(anyhow::Error::msg("Failed to get download url!")),
             }
@@ -153,7 +149,10 @@ pub async fn download_files(version: &str, category: Category) -> anyhow::Result
 }
 
 async fn download_jar(version: &str, data: &Value, category: Category) -> anyhow::Result<()> {
-    if let Value::String(url) = &data["downloads"][select_category(&category)]["url"] {
+    if let (Value::String(url), Value::String(sha1)) = (
+        &data["downloads"][select_category(&category)]["url"],
+        &data["downloads"][select_category(&category)]["sha1"],
+    ) {
         let mut url = url.to_owned();
 
         match *DOWNLOAD_SOURCE.lock().await {
@@ -169,9 +168,7 @@ async fn download_jar(version: &str, data: &Value, category: Category) -> anyhow
         let file_path = Path::new(&file_path);
         let file_name = format!("{}.jar", version);
 
-        if !file_path.join(&file_name).exists() {
-            super::download_file(file_path, &file_name, &url).await?;
-        }
+        super::download_file(file_path, &file_name, &url, Some(sha1)).await?;
     }
 
     Ok(())
@@ -179,6 +176,7 @@ async fn download_jar(version: &str, data: &Value, category: Category) -> anyhow
 
 async fn download_libraries(data: &Value) -> anyhow::Result<()> {
     let mut paths = Vec::new();
+    let mut sha1s = Vec::new();
     let mut urls = Vec::new();
 
     if let Value::Array(libs) = &data["libraries"] {
@@ -186,8 +184,9 @@ async fn download_libraries(data: &Value) -> anyhow::Result<()> {
             if [Value::Null, Value::String(OS.replace("macos", "osx"))]
                 .contains(&lib["rules"][0]["os"]["name"])
             {
-                if let (Value::String(path), Value::String(url)) = (
+                if let (Value::String(path), Value::String(sha1), Value::String(url)) = (
                     &lib["downloads"]["artifact"]["path"],
+                    &lib["downloads"]["artifact"]["sha1"],
                     &lib["downloads"]["artifact"]["url"],
                 ) {
                     let mut url = url.to_owned();
@@ -202,33 +201,41 @@ async fn download_libraries(data: &Value) -> anyhow::Result<()> {
                     }
 
                     paths.push(path.to_owned());
+                    sha1s.push(sha1.to_owned());
                     urls.push(url);
                 }
             }
         }
     }
 
-    let urls = Arc::new(StdMutex::new(urls));
     let paths = Arc::new(StdMutex::new(paths));
+    let sha1s = Arc::new(StdMutex::new(sha1s));
+    let urls = Arc::new(StdMutex::new(urls));
+
     let mut handles = Vec::with_capacity(*THREAD_COUNT.lock().await);
 
     for _ in 0..*THREAD_COUNT.lock().await {
-        let (urls, paths) = (urls.clone(), paths.clone());
+        let (paths, sha1s, urls) = (paths.clone(), sha1s.clone(), urls.clone());
         // We have to create a runtime because of
         // issue #62290 <https://github.com/rust-lang/rust/issues/62290>,
         // even if this will yield huge overheads.
         let rt = Runtime::new().unwrap();
 
         let handle = thread::spawn(move || loop {
-            let (url, path) = {
-                let mut urls = urls.lock().unwrap();
+            let (path, sha1, url) = {
                 let mut paths = paths.lock().unwrap();
+                let mut sha1s = sha1s.lock().unwrap();
+                let mut urls = urls.lock().unwrap();
 
-                if urls.is_empty() || paths.is_empty() {
+                if paths.is_empty() || sha1s.is_empty() || urls.is_empty() {
                     break;
                 }
 
-                (urls.pop().unwrap(), paths.pop().unwrap())
+                (
+                    paths.pop().unwrap(),
+                    sha1s.pop().unwrap(),
+                    urls.pop().unwrap(),
+                )
             };
 
             let file_name;
@@ -239,10 +246,13 @@ async fn download_libraries(data: &Value) -> anyhow::Result<()> {
             });
             let file_path = Path::new(&file_path);
 
-            if !file_path.join(file_name).exists() {
-                rt.block_on(super::download_file(file_path, file_name, &url))
-                    .unwrap();
-            }
+            rt.block_on(super::download_file(
+                file_path,
+                file_name,
+                &url,
+                Some(&sha1),
+            ))
+            .unwrap();
         });
 
         handles.push(handle);
@@ -259,9 +269,11 @@ async fn download_assets(data: &Value) -> anyhow::Result<()> {
     let mut hashes = Vec::new();
     let mut urls = Vec::new();
 
-    if let (Value::String(id), Value::String(url)) =
-        (&data["assetIndex"]["id"], &data["assetIndex"]["url"])
-    {
+    if let (Value::String(id), Value::String(sha1), Value::String(url)) = (
+        &data["assetIndex"]["id"],
+        &data["assetIndex"]["sha1"],
+        &data["assetIndex"]["url"],
+    ) {
         let mut url = url.to_owned();
 
         match *DOWNLOAD_SOURCE.lock().await {
@@ -277,9 +289,7 @@ async fn download_assets(data: &Value) -> anyhow::Result<()> {
         let file_path = Path::new(&file_path);
         let file_name = format!("{}.json", id);
 
-        if !file_path.join(&file_name).exists() {
-            super::download_file(file_path, &file_name, &url).await?
-        }
+        super::download_file(file_path, &file_name, &url, Some(sha1)).await?;
 
         let data = json::read(file_path, &file_name)?;
 
@@ -304,8 +314,9 @@ async fn download_assets(data: &Value) -> anyhow::Result<()> {
         }
     }
 
-    let urls = Arc::new(StdMutex::new(urls));
     let hashes = Arc::new(StdMutex::new(hashes));
+    let urls = Arc::new(StdMutex::new(urls));
+
     let mut handles = Vec::with_capacity(*THREAD_COUNT.lock().await);
 
     for _ in 0..*THREAD_COUNT.lock().await {
@@ -329,12 +340,15 @@ async fn download_assets(data: &Value) -> anyhow::Result<()> {
 
             let file_path = format!("{}/assets/objects/{}", MINECRAFT_ROOT, &hash[0..2]);
             let file_path = Path::new(&file_path);
-            let file_name = hash;
+            let file_name = &hash;
 
-            if !file_path.join(&file_name).exists() {
-                rt.block_on(super::download_file(file_path, &file_name, &url))
-                    .unwrap();
-            }
+            rt.block_on(super::download_file(
+                file_path,
+                file_name,
+                &url,
+                Some(&hash),
+            ))
+            .unwrap();
         });
 
         handles.push(handle);

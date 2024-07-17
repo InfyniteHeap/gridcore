@@ -5,6 +5,7 @@
 pub mod game;
 pub mod mods;
 
+use crate::checksum;
 use crate::file_system;
 
 use std::io::Write;
@@ -19,7 +20,18 @@ lazy_static! {
         Mutex::new(thread::available_parallelism().unwrap().get());
 }
 
-pub async fn download_file(file_path: &Path, file_name: &str, url: &str) -> anyhow::Result<()> {
+pub async fn download_file(
+    file_path: &Path,
+    file_name: &str,
+    url: &str,
+    sha1: Option<&str>,
+) -> anyhow::Result<()> {
+    if file_path.join(file_name).exists()
+        && (sha1.is_none() || checksum::calculate_sha1(file_path, file_name)? == sha1.unwrap())
+    {
+        return Ok(());
+    }
+
     for times in 1..=3 {
         let mut file = file_system::create_file(file_path, file_name)?;
 
@@ -28,11 +40,15 @@ pub async fn download_file(file_path: &Path, file_name: &str, url: &str) -> anyh
                 if response.status().is_success() {
                     file.write_all(&response.bytes().await?)?;
 
-                    break;
+                    if sha1.is_none()
+                        || checksum::calculate_sha1(file_path, file_name)? == sha1.unwrap()
+                    {
+                        break;
+                    } else {
+                        continue;
+                    }
                 } else if let reqwest::Result::Err(err) = response.error_for_status() {
                     if times == 3 {
-                        file_system::remove_file(file_path, file_name)?;
-
                         return Err(anyhow::Error::msg(format!(
                             "Failed to download {}: {}",
                             file_name, err
@@ -51,8 +67,6 @@ pub async fn download_file(file_path: &Path, file_name: &str, url: &str) -> anyh
             }
             Err(err) => {
                 if times == 3 {
-                    file_system::remove_file(file_path, file_name)?;
-
                     return Err(anyhow::Error::msg(format!(
                         "Failed to download {}: {}",
                         file_name, err
