@@ -103,30 +103,25 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
     let manifest = read_version_manifest()?;
 
     for ver in manifest {
-        if match ver.get("id") {
-            Some(id) => id,
-            None => return Err(anyhow::Error::msg("Failed to get id!")),
-        } == version
-        {
-            match (ver.get("url"), ver.get("sha1")) {
-                (Some(Value::String(url)), Some(Value::String(sha1))) => {
-                    let mut url = url.to_owned();
+        if ver["id"] == version {
+            if let (Value::String(url), Value::String(sha1)) = (&ver["url"], &ver["sha1"]) {
+                let mut url = url.to_owned();
 
-                    match *DOWNLOAD_SOURCE.lock().await {
-                        Official => (),
-                        Bangbang93 => {
-                            let len = "https://piston-meta.mojang.com/".len();
-                            url = format!("{}/{}", BANGBANG93, &url[len..]);
-                        }
-                        _ => unreachable!(),
+                match *DOWNLOAD_SOURCE.lock().await {
+                    Official => (),
+                    Bangbang93 => {
+                        let len = "https://piston-meta.mojang.com/".len();
+                        url = format!("{}/{}", BANGBANG93, &url[len..]);
                     }
-
-                    let manifest_name = format!("{}.json", version);
-
-                    super::download_file(manifest_path, &manifest_name, &url, Some(sha1)).await?;
+                    _ => unreachable!(),
                 }
-                _ => return Err(anyhow::Error::msg("Failed to get download url!")),
+
+                let manifest_name = format!("{}.json", version);
+
+                super::download_file(manifest_path, &manifest_name, &url, Some(sha1)).await?;
             }
+
+            break;
         }
     }
 
