@@ -8,7 +8,6 @@ pub mod mods;
 use crate::checksum;
 use crate::file_system;
 
-use std::io::Write;
 use std::path::Path;
 use std::thread;
 
@@ -46,12 +45,10 @@ pub async fn download_file(
     };
 
     for times in 1..=3 {
-        let mut file = file_system::create_file(file_path, file_name)?;
-
         match reqwest::get(url).await {
             Ok(response) => {
                 if response.status().is_success() {
-                    file.write_all(&response.bytes().await?)?;
+                    file_system::write_into_file(file_path, file_name, &response.bytes().await?)?;
 
                     if sha1.is_none()
                         || checksum::calculate_sha1(file_path, file_name)? == sha1.unwrap()

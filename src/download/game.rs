@@ -1,4 +1,5 @@
 use super::THREAD_COUNT;
+use crate::file_system;
 use crate::json;
 use crate::path::MINECRAFT_ROOT;
 use Category::*;
@@ -66,7 +67,14 @@ pub async fn download_version_manifest() -> anyhow::Result<()> {
     let manifest_path = Path::new(&manifest_path);
     let manifest_name = "version_manifest_v2.json";
 
-    super::download_file(manifest_path, manifest_name, &url, None).await?;
+    // We always download this manifest regardless of the status of this file.
+    // This is because: (1) we have no other ways to check integrity of this file,
+    // and (2) we can fetch latest information via this way.
+    let response = reqwest::get(&url).await?;
+
+    if response.status().is_success() {
+        file_system::write_into_file(manifest_path, manifest_name, &response.bytes().await?)?;
+    }
 
     Ok(())
 }
