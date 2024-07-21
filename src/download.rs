@@ -32,6 +32,19 @@ pub async fn download_file(
         return Ok(());
     }
 
+    let error_handling_helper = |times, err| {
+        if times == 3 {
+            panic!("{}", format!("Failed to download {}: {}", file_name, err));
+        } else {
+            eprintln!(
+                "{}! Retrying for {} {}",
+                err,
+                times,
+                if times == 1 { "time" } else { "times" }
+            );
+        }
+    };
+
     for times in 1..=3 {
         let mut file = file_system::create_file(file_path, file_name)?;
 
@@ -48,39 +61,15 @@ pub async fn download_file(
                         continue;
                     }
                 } else if let reqwest::Result::Err(err) = response.error_for_status() {
-                    if times == 3 {
-                        return Err(anyhow::Error::msg(format!(
-                            "Failed to download {}: {}",
-                            file_name, err
-                        )));
-                    } else {
-                        eprintln!(
-                            "{}! Retrying for {} {}",
-                            err,
-                            times,
-                            if times == 1 { "time" } else { "times" }
-                        );
-
-                        continue;
-                    }
-                }
-            }
-            Err(err) => {
-                if times == 3 {
-                    return Err(anyhow::Error::msg(format!(
-                        "Failed to download {}: {}",
-                        file_name, err
-                    )));
-                } else {
-                    eprintln!(
-                        "{}! Retrying for {} {}",
-                        err,
-                        times,
-                        if times == 1 { "time" } else { "times" }
-                    );
+                    error_handling_helper(times, err);
 
                     continue;
                 }
+            }
+            Err(err) => {
+                error_handling_helper(times, err);
+
+                continue;
             }
         }
     }
