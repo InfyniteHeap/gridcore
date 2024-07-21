@@ -2,6 +2,7 @@ use std::path::Path;
 
 use gridcore::checksum;
 
+#[ignore = "This test case must be manually tested on local machine."]
 #[test]
 // Note: Please run this test after Minecrat files are downloaded!
 fn cal_sha1() {

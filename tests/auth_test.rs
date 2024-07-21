@@ -4,6 +4,7 @@ use gridcore::path::CONFIGURATIONS_DIRECTORY;
 
 use std::path::Path;
 
+#[ignore = "This test case must be manually tested on local machine."]
 #[tokio::test]
 async fn login_test() {
     // Assume there is a string that contains a Microsoft authorization code.
