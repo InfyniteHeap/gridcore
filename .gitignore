@@ -18,3 +18,7 @@ Cargo.lock
 
 # Local GCL configurations
 config/
+
+# RustRover will generate .idea folder on local machine
+# to store configurations
+.idea
