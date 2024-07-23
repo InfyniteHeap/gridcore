@@ -1,7 +1,7 @@
 //! # File System
 //!
 //! For better developing experience and more convenience,
-//! most of functions about files are simply wrapped here.
+//! most functions about files are simply wrapped here.
 
 use std::fs::{self, File};
 use std::io::{self, Write};

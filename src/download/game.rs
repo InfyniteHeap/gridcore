@@ -22,7 +22,7 @@ const ASSETS_DOWNLOAD_BANGBANG93: &str = "https://bmclapi2.bangbang93.com/assets
 
 lazy_static! {
     // This status variable is used by async functions, so we use `Mutex<T>` here.
-    static ref DOWNLOAD_SOURCE: TokioMutex<DownloadSource> = TokioMutex::new(DownloadSource::Void);
+    static ref DOWNLOAD_SOURCE: TokioMutex<DownloadSource> = TokioMutex::new(Void);
 }
 
 pub enum DownloadSource {
@@ -52,7 +52,7 @@ fn select_category(category: &Category) -> &'static str {
     }
 }
 
-/// Download the manifest which contains metadata of all of the Minecraft versions.
+/// Download the manifest which contains metadata of all the Minecraft versions.
 pub async fn download_version_manifest() -> anyhow::Result<()> {
     let url = format!(
         "{}/mc/game/version_manifest_v2.json",

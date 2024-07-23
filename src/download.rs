@@ -57,7 +57,7 @@ pub async fn download_file(
                     } else {
                         continue;
                     }
-                } else if let reqwest::Result::Err(err) = response.error_for_status() {
+                } else if let Err(err) = response.error_for_status() {
                     error_handling_helper(times, err);
 
                     continue;
@@ -77,7 +77,7 @@ pub async fn download_file(
 /// Set thread count.
 ///
 /// If you don't call this function,
-/// the default thread count will usually depends on
+/// the default thread count will usually depend on
 /// numbers of logical CPU cores.
 pub async fn set_thread_count(count: usize) {
     *THREAD_COUNT.lock().await = count;
