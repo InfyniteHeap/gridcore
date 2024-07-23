@@ -2,9 +2,9 @@
 
 # Code of conduct
 
-To contibute to gridcore, you should follow these rules:
+To contribute to gridcore, you should follow these rules:
 
-## The `use`-relavants
+## The `use`-relevant
 
 ### Importing Order
 
@@ -51,7 +51,7 @@ fn foo() -> reqwest::Result<String> { ... }
 fn baz() -> serde_json::Result<Value> { ... }
 ```
 
-When their individual upper module names are also confilcts, use `as` to rename the types:
+When their individual upper module names are also conflicts, use `as` to rename the types:
 
 ```rust
 use std::sync::Mutex as StdMutex;
@@ -74,9 +74,9 @@ use foo::{self, Bar, NewType};
 foo::baz();
 ```
 
-## `&str`, `String` and Other Relavant String Types
+## `&str`, `String` and Other Relevant String Types
 
-if possible, pass `&str` and return `String` when designing a function to deminish overheads and guarantee that there are no confusing lifetime issues:
+if possible, pass `&str` and return `String` when designing a function to diminish overheads and guarantee that there are no confusing lifetime issues:
 
 ```rust
 fn foo(param: &str) -> String { ... }
