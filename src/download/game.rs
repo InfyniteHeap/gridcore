@@ -25,6 +25,7 @@ lazy_static! {
     static ref DOWNLOAD_SOURCE: TokioMutex<DownloadSource> = TokioMutex::new(Void);
 }
 
+#[derive(PartialEq)]
 pub enum DownloadSource {
     // This is only for initializing `DOWNLOAD_SOURCE`.
     Void,
@@ -89,15 +90,12 @@ pub(crate) fn read_version_manifest() -> anyhow::Result<Vec<Map<String, Value>>>
 
     let mut manifest = Vec::new();
 
-    match &data["versions"] {
-        Value::Array(arr) => {
-            for element in arr {
-                if let Value::Object(obj) = element {
-                    manifest.push(obj.to_owned())
-                }
+    if let Value::Array(arr) = &data["versions"] {
+        for element in arr {
+            if let Value::Object(obj) = element {
+                manifest.push(obj.to_owned())
             }
         }
-        _ => return Err(anyhow::Error::msg("Failed to read version manifest!")),
     }
 
     Ok(manifest)
@@ -115,13 +113,9 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
             if let (Value::String(url), Value::String(sha1)) = (&ver["url"], &ver["sha1"]) {
                 let mut url = url.to_owned();
 
-                match *DOWNLOAD_SOURCE.lock().await {
-                    Official => (),
-                    Bangbang93 => {
-                        let len = "https://piston-meta.mojang.com/".len();
-                        url = format!("{}/{}", BANGBANG93, &url[len..]);
-                    }
-                    _ => unreachable!(),
+                if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+                    let len = "https://piston-meta.mojang.com/".len();
+                    url = format!("{}/{}", BANGBANG93, &url[len..]);
                 }
 
                 let manifest_name = format!("{}.json", version);
@@ -158,13 +152,9 @@ async fn download_jar(version: &str, data: &Value, category: Category) -> anyhow
     ) {
         let mut url = url.to_owned();
 
-        match *DOWNLOAD_SOURCE.lock().await {
-            Official => (),
-            Bangbang93 => {
-                let idx = "https://piston-data.mojang.com/".len();
-                url = format!("{}/{}", BANGBANG93, &url[idx..]);
-            }
-            _ => unreachable!(),
+        if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+            let idx = "https://piston-data.mojang.com/".len();
+            url = format!("{}/{}", BANGBANG93, &url[idx..]);
         }
 
         let file_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
@@ -194,13 +184,9 @@ async fn download_libraries(data: &Value) -> anyhow::Result<()> {
                 ) {
                     let mut url = url.to_owned();
 
-                    match *DOWNLOAD_SOURCE.lock().await {
-                        Official => (),
-                        Bangbang93 => {
-                            let idx = "https://libraries.minecraft.net/".len();
-                            url = format!("{}/maven/{}", BANGBANG93, &url[idx..]);
-                        }
-                        _ => unreachable!(),
+                    if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+                        let idx = "https://libraries.minecraft.net/".len();
+                        url = format!("{}/maven/{}", BANGBANG93, &url[idx..]);
                     }
 
                     paths.push(path.to_owned());
@@ -279,13 +265,9 @@ async fn download_assets(data: &Value) -> anyhow::Result<()> {
     ) {
         let mut url = url.to_owned();
 
-        match *DOWNLOAD_SOURCE.lock().await {
-            Official => (),
-            Bangbang93 => {
-                let len = "https://piston-meta.mojang.com/".len();
-                url = format!("{}/{}", BANGBANG93, &url[len..])
-            }
-            _ => unreachable!(),
+        if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+            let len = "https://piston-meta.mojang.com/".len();
+            url = format!("{}/{}", BANGBANG93, &url[len..])
         }
 
         let file_path = format!("{}/assets/indexes", MINECRAFT_ROOT);
