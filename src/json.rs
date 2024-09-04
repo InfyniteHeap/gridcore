@@ -1,40 +1,26 @@
-use fs_err as fs;
+use crate::file_system;
+
+use std::path::Path;
+
 use serde::Serialize;
 use serde_json::Value;
 
-pub fn serialize_to_json<T: Serialize>(contents: T) -> Result<String, serde_json::Error> {
-    serde_json::to_string_pretty(&contents)
+/// Parse JSON from string.
+///
+/// This is usually used when parsing JSON directly got from Internet.
+pub async fn parse_from_string(json: &str) -> serde_json::Result<Value> {
+    serde_json::from_str::<Value>(json)
 }
 
-pub fn deserialize_json(json: fs::File) {
-    todo!()
+/// Parse JSON from string.
+///
+/// This is usually used when parsing JSON stored on local machine.
+pub async fn read(json_path: &Path, json_name: &str) -> anyhow::Result<Value> {
+    let json_file = file_system::read_file_to_string(json_path, json_name).await?;
+    Ok(parse_from_string(&json_file).await?)
 }
 
-pub(crate) fn parse_response(response: &str) -> Value {
-    match serde_json::from_str::<Value>(response) {
-        Ok(data) => data,
-        Err(e) => panic!("{e}"),
-    }
-}
-
-pub(crate) fn extract_value(json_text: &Value, keys: &[&str]) -> String {
-    keys.iter()
-        .try_fold(json_text, |acc, &key| {
-            if let Ok(index) = key.parse::<usize>() {
-                acc.as_array().and_then(|val| val.get(index))
-            } else {
-                acc.as_object().and_then(|val| val.get(key))
-            }
-        })
-        .and_then(|val| match val {
-            Value::String(s) => Some(s.to_owned()),
-            _ => None,
-        })
-        .unwrap_or_else(|| {
-            let key_path: Vec<_> = keys.iter().map(|k| k.to_owned()).collect();
-            panic!(
-                "Failed to extract value from returned json: {}",
-                key_path.join("\"][\"")
-            )
-        })
+/// Convert an instance into serialized JSON data.
+pub async fn convert_to_string(json: impl Serialize) -> serde_json::Result<String> {
+    serde_json::to_string_pretty(&json)
 }

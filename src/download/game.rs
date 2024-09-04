@@ -1,113 +1,418 @@
-use fs_err as fs;
+use super::{DownloadFileInfo, DURATION, THREAD_COUNT};
+use crate::decompress;
+use crate::file_system;
+use crate::json;
+use crate::path::MINECRAFT_ROOT;
+use Category::*;
+use DownloadSource::*;
 
-use super::download_content;
+use std::env::consts::{ARCH, OS};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, LazyLock};
 
-use serde_json::{from_str, Map, Value};
+use reqwest::Client;
+use serde_json::{Map, Value};
+use tokio::sync::{Mutex, Semaphore};
+use tokio::task;
 
-const OFFICIAL: &str = "https://piston-meta.mojang.com/";
-const BANGBANG93: &str = "https://bmclapi2.bangbang93.com/";
+const OFFICIAL: &str = "https://piston-meta.mojang.com";
+const BANGBANG93: &str = "https://bmclapi2.bangbang93.com";
+const ASSETS_DOWNLOAD_OFFICIAL: &str = "https://resources.download.minecraft.net";
+const ASSETS_DOWNLOAD_BANGBANG93: &str = "https://bmclapi2.bangbang93.com/assets";
 
-#[cfg(target_os = "windows")]
-const MINECRAFT_ROOT: &str = "./.minecraft";
-#[cfg(target_os = "macos")]
-const MINECRAFT_ROOT: &str = "./minecraft";
-#[cfg(target_os = "linux")]
-const MINECRAFT_ROOT: &str = "./.minecraft";
+const RETRY_TIMES: u8 = 5;
 
-#[derive(Default)]
-pub enum McResDlAddr {
-    #[default]
+static DOWNLOAD_SOURCE: Mutex<DownloadSource> = Mutex::const_new(Void);
+static CLIENT: LazyLock<Arc<Client>> = LazyLock::new(|| {
+    Arc::new(
+        Client::builder()
+            .connect_timeout(DURATION)
+            .https_only(true)
+            .build()
+            .unwrap_or_default(),
+    )
+});
+
+#[derive(PartialEq)]
+pub enum DownloadSource {
+    // This is only for initializing `DOWNLOAD_SOURCE`.
+    Void,
     Official,
     Bangbang93,
 }
 
-pub enum MinecraftVersionType {
-    Release,
-    Snapshot,
-    OldAlpha,
+pub enum Category {
+    Client,
+    Server,
 }
 
-pub fn minecraft_version_type(ty: MinecraftVersionType) -> &'static str {
-    match ty {
-        MinecraftVersionType::Release => "release",
-        MinecraftVersionType::Snapshot => "snapshot",
-        MinecraftVersionType::OldAlpha => "old_alpha",
-    }
-}
-
-fn select_dl_addr(res: McResDlAddr) -> &'static str {
+pub async fn select_download_source(res: &DownloadSource) {
     match res {
-        McResDlAddr::Official => OFFICIAL,
-        McResDlAddr::Bangbang93 => BANGBANG93,
+        Official => *DOWNLOAD_SOURCE.lock().await = Official,
+        Bangbang93 => *DOWNLOAD_SOURCE.lock().await = Bangbang93,
+        _ => unreachable!(),
     }
 }
 
-pub async fn download_mc_version_manifest(res: McResDlAddr) -> anyhow::Result<()> {
-    const ADDR_SUFFIX: &str = "mc/game/version_manifest_v2.json";
+async fn select_category(category: &Category) -> &'static str {
+    match category {
+        Client => "client",
+        Server => "server,",
+    }
+}
 
-    let dl_addr = select_dl_addr(res);
+/// Download the manifest which contains metadata of all the Minecraft versions.
+pub async fn download_version_manifest() -> anyhow::Result<()> {
+    let manifest_path = format!("{}/versions", MINECRAFT_ROOT);
+    let manifest_name = "version_manifest_v2.json";
 
-    let dir = MINECRAFT_ROOT.to_string() + "/versions";
-    let file_name = "version_manifest_v2.json";
+    let url = format!(
+        "{}/mc/game/version_manifest_v2.json",
+        match *DOWNLOAD_SOURCE.lock().await {
+            Official => OFFICIAL,
+            Bangbang93 => BANGBANG93,
+            _ => unreachable!(),
+        }
+    );
 
-    download_content(file_name, &dir, &(dl_addr.to_string() + ADDR_SUFFIX)).await?;
+    // We always download this manifest regardless of the status of this file.
+    // This is because: (1) we have no other ways to check integrity of this file,
+    // and (2) we can fetch latest Minecraft information via this way.
+    let response = CLIENT.get(&url).send().await?;
+
+    if response.status().is_success() {
+        file_system::write_into_file(
+            Path::new(&manifest_path),
+            manifest_name,
+            &response.bytes().await?,
+        )
+        .await?;
+    }
 
     Ok(())
 }
 
-pub fn read_version_manifest() -> anyhow::Result<Vec<Map<String, Value>>> {
-    let manifest_path = MINECRAFT_ROOT.to_string() + "/versions" + "/version_manifest_v2.json";
-    let file = fs::read_to_string(manifest_path)?;
-    let data = from_str::<Value>(&file)?;
+/// Read contents in `version_manifest_v2.json`.
+pub(crate) async fn read_version_manifest() -> anyhow::Result<Vec<Map<String, Value>>> {
+    let manifest_path = format!("{}/versions", MINECRAFT_ROOT);
+    let manifest_name = "version_manifest_v2.json";
 
-    let mut version_manifest = Vec::new();
+    let data = json::read(Path::new(&manifest_path), manifest_name).await?;
+
+    let mut manifest = Vec::new();
 
     if let Value::Array(arr) = &data["versions"] {
-        for element in arr {
+        arr.iter().for_each(|element| {
             if let Value::Object(obj) = element {
-                version_manifest.push(obj.clone())
+                manifest.push(obj.to_owned())
             }
-        }
+        });
     }
 
-    Ok(version_manifest)
+    Ok(manifest)
 }
 
-/// The return contents will display on UI interface.
-pub fn list_versions() -> anyhow::Result<Vec<(String, String)>> {
-    let version_manifest = read_version_manifest()?;
+/// Download the manifest which contains metadata of a specific Minecraft version.
+pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result<()> {
+    let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
+    let manifest_name = format!("{}.json", version);
 
-    let mut versions = Vec::new();
+    let manifest = read_version_manifest().await?;
 
-    for e in version_manifest {
-        if let (Some(Value::String(id)), Some(Value::String(ty))) = (e.get("id"), e.get("type")) {
-            versions.push((id.clone(), ty.clone()))
-        }
-    }
+    for ver in manifest {
+        if ver["id"] == version {
+            if let (Value::String(url), Value::String(sha1)) = (&ver["url"], &ver["sha1"]) {
+                let mut url = url.to_owned();
 
-    Ok(versions)
-}
+                if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+                    let len = "https://piston-meta.mojang.com/".len();
+                    url = format!("{}/{}", BANGBANG93, &url[len..]);
+                }
 
-pub async fn download_specific_mc_version_manifest(version: &str) -> anyhow::Result<()> {
-    let version_manifest_path = MINECRAFT_ROOT.to_string() + "/versions/" + version;
-    let version_manifest = read_version_manifest()?;
+                let file_info = DownloadFileInfo {
+                    path: PathBuf::from(manifest_path),
+                    name: manifest_name,
+                    url,
+                    sha1: sha1.to_owned(),
+                };
 
-    for e in version_manifest {
-        if match e.get("id") {
-            Some(id) => id,
-            None => return Err(anyhow::Error::msg("No matched version!")),
-        } == version
-        {
-            if let Some(Value::String(url)) = e.get("url") {
-                let file_name = version.to_string() + ".json";
-                download_content(&file_name, &version_manifest_path, url).await?;
+                super::download_file(&CLIENT, RETRY_TIMES, &file_info).await?;
             }
+
+            break;
         }
     }
 
     Ok(())
 }
 
-pub async fn download_mc_files() -> anyhow::Result<()> {
+/// Download Minecraft.
+pub async fn download_files(version: &str, category: Category) -> anyhow::Result<()> {
+    let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
+    let manifest_name = format!("{}.json", version);
+
+    let data = json::read(Path::new(&manifest_path), &manifest_name).await?;
+
+    download_jar(version, &data, category).await?;
+    let natives_libraries_paths = download_libraries(&data).await?;
+    download_assets(&data).await?;
+    download_logging_config(&data).await?;
+
+    decompress_natives_libraries(natives_libraries_paths, version).await?;
+
+    Ok(())
+}
+
+async fn download_jar(version: &str, data: &Value, category: Category) -> anyhow::Result<()> {
+    let file_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
+    let file_name = format!("{}.jar", version);
+
+    if let (Value::String(url), Value::String(sha1)) = (
+        &data["downloads"][select_category(&category).await]["url"],
+        &data["downloads"][select_category(&category).await]["sha1"],
+    ) {
+        let mut url = url.to_owned();
+
+        if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+            let idx = "https://piston-data.mojang.com/".len();
+            url = format!("{}/{}", BANGBANG93, &url[idx..]);
+        }
+
+        let file_info = DownloadFileInfo {
+            path: PathBuf::from(file_path),
+            name: file_name,
+            url,
+            sha1: sha1.to_owned(),
+        };
+
+        super::download_file(&CLIENT, RETRY_TIMES, &file_info).await?;
+    }
+
+    Ok(())
+}
+
+async fn download_libraries(data: &Value) -> anyhow::Result<Vec<DownloadFileInfo>> {
+    let mut files = Vec::new();
+
+    if let Value::Array(libs) = &data["libraries"] {
+        for lib in libs {
+            if [Value::Null, Value::String(OS.replace("macos", "osx"))]
+                .contains(&lib["rules"][0]["os"]["name"])
+            {
+                if let (Value::String(path), Value::String(sha1), Value::String(url)) = (
+                    &lib["downloads"]["artifact"]["path"],
+                    &lib["downloads"]["artifact"]["sha1"],
+                    &lib["downloads"]["artifact"]["url"],
+                ) {
+                    let mut url = url.to_owned();
+
+                    if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+                        let idx = "https://libraries.minecraft.net/".len();
+                        url = format!("{}/maven/{}", BANGBANG93, &url[idx..]);
+                    }
+
+                    let file_name;
+                    let file_path = format!("{}/libraries/{}", MINECRAFT_ROOT, {
+                        let mut idx = path.len() - 1;
+
+                        // We can ensure that `path` only contains ASCII characters,
+                        // so this slice (index) is always valid.
+                        while &path[idx..=idx] != "/" {
+                            idx -= 1;
+                        }
+
+                        file_name = &path[idx + 1..];
+                        &path[..idx]
+                    });
+
+                    let file_info = DownloadFileInfo {
+                        path: PathBuf::from(file_path),
+                        name: file_name.to_string(),
+                        url,
+                        sha1: sha1.to_owned(),
+                    };
+
+                    files.push(file_info);
+
+                    // This seems only be compatible with versions older than 1.18.
+                } else if let (Value::String(path), Value::String(sha1), Value::String(url)) = (
+                    &lib["downloads"]["classifiers"]
+                        [&format!("natives-{}", OS.replace("macos", "osx"))]["path"],
+                    &lib["downloads"]["classifiers"]
+                        [&format!("natives-{}", OS.replace("macos", "osx"))]["sha1"],
+                    &lib["downloads"]["classifiers"]
+                        [&format!("natives-{}", OS.replace("macos", "osx"))]["url"],
+                ) {
+                    let mut url = url.to_owned();
+
+                    if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+                        let idx = "https://libraries.minecraft.net/".len();
+                        url = format!("{}/maven/{}", BANGBANG93, &url[idx..]);
+                    }
+
+                    let file_name;
+                    let file_path = format!("{}/libraries/{}", MINECRAFT_ROOT, {
+                        let mut idx = path.len() - 1;
+
+                        while &path[idx..idx + 1] != "/" {
+                            idx -= 1;
+                        }
+
+                        file_name = &path[idx + 1..];
+                        &path[..idx]
+                    });
+
+                    let file_info = DownloadFileInfo {
+                        path: PathBuf::from(file_path),
+                        name: file_name.to_string(),
+                        url,
+                        sha1: sha1.to_owned(),
+                    };
+
+                    files.push(file_info);
+                }
+            } else if [Value::Null, Value::String(OS.replace("macos", "osx"))]
+                .contains(&lib["rules"][1]["os"]["name"])
+            {
+                continue;
+            }
+        }
+    }
+
+    let natives_libraries_paths = files
+        .iter()
+        .filter(|f| f.path.starts_with("org/lwjgl") || f.path.to_str().unwrap().contains("natives"))
+        .map(|path| path.to_owned())
+        .collect();
+
+    let mut tasks = Vec::with_capacity(files.len());
+
+    let semaphore = Arc::new(Semaphore::new(*THREAD_COUNT.lock().await));
+
+    for file_info in files {
+        let permit = semaphore.clone().acquire_owned().await.unwrap();
+
+        let task = task::spawn(async move {
+            let _permit = permit;
+
+            super::download_file(&CLIENT, RETRY_TIMES, &file_info).await
+        });
+
+        tasks.push(task);
+    }
+
+    for task in tasks {
+        task.await??;
+    }
+
+    Ok(natives_libraries_paths)
+}
+
+async fn download_assets(data: &Value) -> anyhow::Result<()> {
+    let mut files = Vec::new();
+
+    if let (Value::String(id), Value::String(sha1), Value::String(url)) = (
+        &data["assetIndex"]["id"],
+        &data["assetIndex"]["sha1"],
+        &data["assetIndex"]["url"],
+    ) {
+        let mut url = url.to_owned();
+
+        if *DOWNLOAD_SOURCE.lock().await == Bangbang93 {
+            let len = "https://piston-meta.mojang.com/".len();
+            url = format!("{}/{}", BANGBANG93, &url[len..])
+        }
+
+        let file_path = format!("{}/assets/indexes", MINECRAFT_ROOT);
+        let file_name = format!("{}.json", id);
+
+        let file_info = DownloadFileInfo {
+            path: PathBuf::from(&file_path),
+            name: file_name.clone(),
+            url,
+            sha1: sha1.to_owned(),
+        };
+
+        super::download_file(&CLIENT, RETRY_TIMES, &file_info).await?;
+
+        let data = json::read(Path::new(&file_path), &file_name).await?;
+
+        if let Value::Object(obj) = &data["objects"] {
+            for (_, key) in obj {
+                if let Value::String(hash) = &key["hash"] {
+                    let url = format!(
+                        "{}/{}/{}",
+                        match *DOWNLOAD_SOURCE.lock().await {
+                            Official => ASSETS_DOWNLOAD_OFFICIAL,
+                            Bangbang93 => ASSETS_DOWNLOAD_BANGBANG93,
+                            _ => unreachable!(),
+                        },
+                        &hash[0..2],
+                        hash
+                    );
+
+                    let file_path = format!("{}/assets/objects/{}", MINECRAFT_ROOT, &hash[0..2]);
+
+                    let file_info = DownloadFileInfo {
+                        path: PathBuf::from(file_path),
+                        name: file_name.to_owned(),
+                        url,
+                        sha1: sha1.to_owned(),
+                    };
+
+                    files.push(file_info);
+                }
+            }
+        }
+    }
+
+    let mut tasks = Vec::with_capacity(files.len());
+
+    let semaphore = Arc::new(Semaphore::new(*THREAD_COUNT.lock().await));
+
+    for file_info in files {
+        let permit = semaphore.clone().acquire_owned().await.unwrap();
+
+        let task = task::spawn(async move {
+            let _permit = permit;
+
+            super::download_file(&CLIENT, RETRY_TIMES, &file_info).await
+        });
+
+        tasks.push(task);
+    }
+
+    for task in tasks {
+        task.await??;
+    }
+
+    Ok(())
+}
+
+async fn download_logging_config(data: &Value) -> anyhow::Result<()> {
+    if let (Value::String(id), Value::String(sha1), Value::String(url)) = (
+        &data["logging"]["client"]["file"]["id"],
+        &data["logging"]["client"]["file"]["sha1"],
+        &data["logging"]["client"]["file"]["url"],
+    ) {
+        let file_path = format!("{}/assets/log_configs", MINECRAFT_ROOT);
+
+        let file_info = DownloadFileInfo {
+            path: PathBuf::from(file_path),
+            name: id.to_owned(),
+            url: url.to_owned(),
+            sha1: sha1.to_owned(),
+        };
+
+        super::download_file(&CLIENT, RETRY_TIMES, &file_info).await?;
+    }
+
+    Ok(())
+}
+
+async fn decompress_natives_libraries(
+    natives_libraries_paths: Vec<DownloadFileInfo>,
+    version: &str,
+) -> anyhow::Result<()> {
     Ok(())
 }

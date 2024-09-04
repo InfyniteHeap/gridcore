@@ -4,41 +4,29 @@
 //!
 //! Since Mojang has deprecated Mojang account verification method,
 //! this module exclusively supports Microsoft OAuth2.
-//!
-//! ## Example
-//!
-//! To fetch your info from server, just use this function:
-//!
-//! ```rust
-//! // Assume there is a string that contains a Microsoft authorization code.
-//! let auth_code = "";
-//! let profile: MinecraftProfile = request_player_profile(auth_code).unwrap();
-//! ```
 
-use crate::{
-    https::*,
-    json::{extract_value, parse_response},
-};
+use crate::file_system;
+use crate::https;
+use crate::json;
+use crate::path::CONFIGURATIONS_DIRECTORY;
 
 use std::collections::HashMap;
+use std::path::Path;
 
-use reqwest::{header::*, Client};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tokio::runtime::Runtime;
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE};
+use serde::Serialize;
+use serde_json::{json, Value};
 
 // These constants are URLs that will receive POST (some are GET) request and return response.
 const REQUEST_MICROSOFT_OAUTH2_TOKEN: &str = "https://login.live.com/oauth20_token.srf";
 const XBOX_AUTHENTICATE: &str = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_AUTHORIZE: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
-const REQUEST_MINECRAFT_ACCESS_TOKEN: &str =
+const REQUEST_ACCESS_TOKEN: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
-// const CHECK_IF_PLAYER_OWN_MINECRAFT: &str =
-//     "https://api.minecraftservices.com/entitlements/mcstore";
-const REQUEST_MINECRAFT_UUID_AND_USERNAME: &str =
-    "https://api.minecraftservices.com/minecraft/profile";
+const CHECK_IF_PLAYER_OWNS_GAME: &str = "https://api.minecraftservices.com/entitlements/mcstore";
+const REQUEST_UUID_AND_USERNAME: &str = "https://api.minecraftservices.com/minecraft/profile";
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct MinecraftProfile {
     /// The Minecraft access token.
@@ -49,15 +37,10 @@ pub struct MinecraftProfile {
     username: String,
 }
 
-pub fn request_player_profile(authorization_code: &str) -> anyhow::Result<MinecraftProfile> {
-    let tokio_rt = Runtime::new()?;
-    Ok(tokio_rt.block_on(request_microsoft_authorization_token(authorization_code))?)
-}
-
 /// Microsoft authorization code -> Microsoft authorization token
-async fn request_microsoft_authorization_token(
-    authorization_code: &str,
-) -> Result<MinecraftProfile, reqwest::Error> {
+pub async fn request_microsoft_authorization_token(
+    authorization_code: &'static str,
+) -> Result<String, reqwest::Error> {
     // The request header.
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -74,97 +57,78 @@ async fn request_microsoft_authorization_token(
     load.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
 
     // Send POST request and receive response.
-    // Because the first request should send a HashMap,
-    // function "send_post_request" is not used here.
-    let response = Client::new()
-        .post(REQUEST_MICROSOFT_OAUTH2_TOKEN)
-        .headers(headers)
-        .form(&load)
-        .send()
-        .await?
-        .text()
-        .await?;
+    let response =
+        https::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load).await?;
 
-    let token = extract_value(&parse_response(&response), &["access_token"]);
-
-    request_xbox_authentication_response(&token).await
+    match &json::parse_from_string(&response).await.unwrap()["access_token"] {
+        Value::String(token) => Ok(token.to_owned()),
+        _ => unreachable!(),
+    }
 }
 
 /// Microsoft authorization token -> Xbox token
-async fn request_xbox_authentication_response(
+pub async fn request_xbox_authentication_response(
     access_token: &str,
-) -> Result<MinecraftProfile, reqwest::Error> {
+) -> Result<String, reqwest::Error> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
     let load = json!(
         {
-        "Properties": {
-            "AuthMethod": "RPS",
-            "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": access_token,
-        },
-        "RelyingParty": "http://auth.xboxlive.com",
-        "TokenType": "JWT"
+            "Properties": {
+                "AuthMethod": "RPS",
+                "SiteName": "user.auth.xboxlive.com",
+                "RpsTicket": access_token,
+            },
+            "RelyingParty": "http://auth.xboxlive.com",
+            "TokenType": "JWT"
         }
     );
 
-    let response = send_post_request(Some(headers), load, XBOX_AUTHENTICATE).await?;
+    let response = https::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
 
-    let token = extract_value(&parse_response(&response), &["Token"]);
-
-    request_xsts_authorization_response(&token).await
+    match &json::parse_from_string(&response).await.unwrap()["Token"] {
+        Value::String(token) => Ok(token.to_owned()),
+        _ => unreachable!(),
+    }
 }
 
-/// Xbox token -> UHS, XSTS token
-async fn request_xsts_authorization_response(
+/// Xbox token -> XSTS token, UHS
+pub async fn request_xsts_authorization_response(
     xbox_token: &str,
-) -> Result<MinecraftProfile, reqwest::Error> {
+) -> Result<(String, String), reqwest::Error> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
     let load = json!(
         {
-        "Properties": {
-            "SandboxId": "RETAIL",
-            "UserTokens": [
-                xbox_token
-            ]
-        },
-        "RelyingParty": "rp://api.minecraftservices.com/",
-        "TokenType": "JWT"
+            "Properties": {
+                "SandboxId": "RETAIL",
+                "UserTokens": [
+                    xbox_token
+                ]
+            },
+            "RelyingParty": "rp://api.minecraftservices.com/",
+            "TokenType": "JWT"
         }
     );
 
-    let response = send_post_request(Some(headers), load, XSTS_AUTHORIZE).await?;
+    let response = https::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
 
-    let token = extract_value(&parse_response(&response), &["Token"]);
-    let uhs = extract_value(
-        &parse_response(&response),
-        &["DisplayClaims", "xui", "0", "uhs"],
-    );
-
-    let minecraft_profile: MinecraftProfile = Default::default();
-
-    minecraft_profile.return_profile(&token, &uhs).await
+    match (
+        &json::parse_from_string(&response).await.unwrap()["Token"],
+        &json::parse_from_string(&response).await.unwrap()["DisplayClaims"]["xui"][0]["uhs"],
+    ) {
+        (Value::String(token), Value::String(uhs)) => Ok((token.to_owned(), uhs.to_owned())),
+        _ => unreachable!(),
+    }
 }
 
 impl MinecraftProfile {
-    pub(self) async fn return_profile(
-        mut self,
-        xsts_token: &str,
-        uhs: &str,
-    ) -> Result<Self, reqwest::Error> {
-        self.request_minecraft_access_token_response(xsts_token, uhs)
-            .await?;
-        self.request_minecraft_uuid_and_username_response().await?;
-
-        Ok(self)
-    }
     /// UHS, XSTS token -> Minecraft access token
-    async fn request_minecraft_access_token_response(
+    pub async fn request_access_token_response(
         &mut self,
         xsts_token: &str,
         uhs: &str,
@@ -175,21 +139,58 @@ impl MinecraftProfile {
             }
         );
 
-        let response = send_post_request(None, load, REQUEST_MINECRAFT_ACCESS_TOKEN).await?;
+        let response = https::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
 
-        self.access_token = extract_value(&parse_response(&response), &["access_token"]);
+        match &json::parse_from_string(&response).await.unwrap()["access_token"] {
+            Value::String(access_token) => self.access_token.clone_from(access_token),
+            _ => unreachable!(),
+        }
 
         Ok(())
     }
 
-    /// Minecraft access token -> Minecraft username, Minecraft UUID
-    async fn request_minecraft_uuid_and_username_response(&mut self) -> Result<(), reqwest::Error> {
+    pub async fn check_if_player_owns_game(&self) -> Result<bool, reqwest::Error> {
         let response =
-            send_get_request(&self.access_token, REQUEST_MINECRAFT_UUID_AND_USERNAME).await?;
+            https::send_get_request(CHECK_IF_PLAYER_OWNS_GAME, &self.access_token).await?;
 
-        self.username = extract_value(&parse_response(&response), &["name"]);
-        self.uuid = extract_value(&parse_response(&response), &["id"]);
+        if let Value::Array(items) = &json::parse_from_string(&response).await.unwrap()["items"] {
+            if !items.is_empty() {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Minecraft access token -> Minecraft username, Minecraft UUID
+    pub async fn request_uuid_and_username_response(&mut self) -> Result<(), reqwest::Error> {
+        let response =
+            https::send_get_request(REQUEST_UUID_AND_USERNAME, &self.access_token).await?;
+
+        match (
+            &json::parse_from_string(&response).await.unwrap()["name"],
+            &json::parse_from_string(&response).await.unwrap()["id"],
+        ) {
+            (Value::String(username), Value::String(uuid)) => {
+                self.username.clone_from(username);
+                self.uuid.clone_from(uuid);
+            }
+            _ => unreachable!(),
+        }
 
         Ok(())
+    }
+
+    pub async fn save_to_file(&self) -> anyhow::Result<()> {
+        let contents = json::convert_to_string(self).await?;
+
+        Ok(file_system::write_into_file(
+            Path::new(CONFIGURATIONS_DIRECTORY),
+            "profile.json",
+            contents.as_bytes(),
+        )
+        .await?)
     }
 }
