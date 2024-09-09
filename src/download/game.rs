@@ -345,9 +345,9 @@ async fn download_assets(data: &Value) -> anyhow::Result<()> {
 
                     let file_info = DownloadFileInfo {
                         path: PathBuf::from(file_path),
-                        name: file_name.to_owned(),
+                        name: hash.to_owned(),
                         url,
-                        sha1: sha1.to_owned(),
+                        sha1: hash.to_owned(),
                     };
 
                     files.push(file_info);
