@@ -1,11 +1,10 @@
-use super::{DownloadFileInfo, DURATION, THREAD_COUNT};
-use crate::decompress;
+use super::{DownloadFileInfo, THREAD_COUNT};
 use crate::file_system;
 use crate::json;
 use crate::path::MINECRAFT_ROOT;
 use DownloadSource::*;
 
-use std::env::consts::{ARCH, OS};
+use std::env::consts::OS;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 
