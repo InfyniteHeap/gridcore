@@ -3,7 +3,6 @@ use crate::decompress;
 use crate::file_system;
 use crate::json;
 use crate::path::MINECRAFT_ROOT;
-use Category::*;
 use DownloadSource::*;
 
 use std::env::consts::{ARCH, OS};
@@ -26,7 +25,6 @@ static DOWNLOAD_SOURCE: Mutex<DownloadSource> = Mutex::const_new(Void);
 static CLIENT: LazyLock<Arc<Client>> = LazyLock::new(|| {
     Arc::new(
         Client::builder()
-            .connect_timeout(DURATION)
             .https_only(true)
             .build()
             .unwrap_or_default(),
@@ -56,8 +54,8 @@ pub async fn select_download_source(res: &DownloadSource) {
 
 async fn select_category(category: &Category) -> &'static str {
     match category {
-        Client => "client",
-        Server => "server,",
+        Category::Client => "client",
+        Category::Server => "server,",
     }
 }
 
@@ -154,11 +152,9 @@ pub async fn download_files(version: &str, category: Category) -> anyhow::Result
     let data = json::read(Path::new(&manifest_path), &manifest_name).await?;
 
     download_jar(version, &data, category).await?;
-    let natives_libraries_paths = download_libraries(&data).await?;
+    download_libraries(&data).await?;
     download_assets(&data).await?;
     download_logging_config(&data).await?;
-
-    decompress_natives_libraries(natives_libraries_paths, version).await?;
 
     Ok(())
 }
@@ -191,7 +187,7 @@ async fn download_jar(version: &str, data: &Value, category: Category) -> anyhow
     Ok(())
 }
 
-async fn download_libraries(data: &Value) -> anyhow::Result<Vec<DownloadFileInfo>> {
+async fn download_libraries(data: &Value) -> anyhow::Result<()> {
     let mut files = Vec::new();
 
     if let Value::Array(libs) = &data["libraries"] {
@@ -279,12 +275,6 @@ async fn download_libraries(data: &Value) -> anyhow::Result<Vec<DownloadFileInfo
         }
     }
 
-    let natives_libraries_paths = files
-        .iter()
-        .filter(|f| f.path.starts_with("org/lwjgl") || f.path.to_str().unwrap().contains("natives"))
-        .map(|path| path.to_owned())
-        .collect();
-
     let mut tasks = Vec::with_capacity(files.len());
 
     let semaphore = Arc::new(Semaphore::new(*THREAD_COUNT.lock().await));
@@ -305,7 +295,7 @@ async fn download_libraries(data: &Value) -> anyhow::Result<Vec<DownloadFileInfo
         task.await??;
     }
 
-    Ok(natives_libraries_paths)
+    Ok(())
 }
 
 async fn download_assets(data: &Value) -> anyhow::Result<()> {
@@ -407,12 +397,5 @@ async fn download_logging_config(data: &Value) -> anyhow::Result<()> {
         super::download_file(&CLIENT, RETRY_TIMES, &file_info).await?;
     }
 
-    Ok(())
-}
-
-async fn decompress_natives_libraries(
-    natives_libraries_paths: Vec<DownloadFileInfo>,
-    version: &str,
-) -> anyhow::Result<()> {
     Ok(())
 }
