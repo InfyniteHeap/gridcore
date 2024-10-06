@@ -4,7 +4,7 @@ pub mod decompress;
 pub mod download;
 pub mod error_handling;
 pub mod file_system;
-pub mod https;
+pub mod http;
 pub mod json;
 pub mod launch;
 pub mod path;

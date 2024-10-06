@@ -6,7 +6,7 @@
 //! this module exclusively supports Microsoft OAuth2.
 
 use crate::file_system;
-use crate::https;
+use crate::http;
 use crate::json;
 use crate::path::CONFIGURATIONS_DIRECTORY;
 
@@ -58,7 +58,7 @@ pub async fn request_microsoft_authorization_token(
 
     // Send POST request and receive response.
     let response =
-        https::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load).await?;
+        http::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load).await?;
 
     match &json::parse_from_string(&response).await.unwrap()["access_token"] {
         Value::String(token) => Ok(token.to_owned()),
@@ -86,7 +86,7 @@ pub async fn request_xbox_authentication_response(
         }
     );
 
-    let response = https::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
+    let response = http::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
 
     match &json::parse_from_string(&response).await.unwrap()["Token"] {
         Value::String(token) => Ok(token.to_owned()),
@@ -115,7 +115,7 @@ pub async fn request_xsts_authorization_response(
         }
     );
 
-    let response = https::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
+    let response = http::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
 
     match (
         &json::parse_from_string(&response).await.unwrap()["Token"],
@@ -139,7 +139,7 @@ impl MinecraftProfile {
             }
         );
 
-        let response = https::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
+        let response = http::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
 
         match &json::parse_from_string(&response).await.unwrap()["access_token"] {
             Value::String(access_token) => self.access_token.clone_from(access_token),
@@ -151,7 +151,7 @@ impl MinecraftProfile {
 
     pub async fn check_if_player_owns_game(&self) -> Result<bool, reqwest::Error> {
         let response =
-            https::send_get_request(CHECK_IF_PLAYER_OWNS_GAME, &self.access_token).await?;
+            http::send_get_request(CHECK_IF_PLAYER_OWNS_GAME, &self.access_token).await?;
 
         if let Value::Array(items) = &json::parse_from_string(&response).await.unwrap()["items"] {
             if !items.is_empty() {
@@ -167,7 +167,7 @@ impl MinecraftProfile {
     /// Minecraft access token -> Minecraft username, Minecraft UUID
     pub async fn request_uuid_and_username_response(&mut self) -> Result<(), reqwest::Error> {
         let response =
-            https::send_get_request(REQUEST_UUID_AND_USERNAME, &self.access_token).await?;
+            http::send_get_request(REQUEST_UUID_AND_USERNAME, &self.access_token).await?;
 
         match (
             &json::parse_from_string(&response).await.unwrap()["name"],
