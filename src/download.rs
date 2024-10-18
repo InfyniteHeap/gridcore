@@ -6,6 +6,7 @@ pub mod game;
 pub mod mods;
 
 use crate::checksum;
+use crate::error_handling::DownloadError;
 use crate::file_system;
 
 use std::path::PathBuf;
@@ -34,7 +35,7 @@ pub(crate) async fn download_file(
     client: &Client,
     retry_times: u8,
     file_info: &DownloadFileInfo,
-) -> anyhow::Result<()> {
+) -> Result<(), DownloadError> {
     // This function will fast return when these conditions are satisfied:
     // 1. The target file exists.
     // 2. Its corresponding SHA1 value is equal to the provided one.
@@ -77,7 +78,7 @@ pub(crate) async fn download_file(
     }
 
     // Function will return `Err(E)` after retrying 3 times with failure.
-    Err(anyhow::Error::msg(format!(
+    Err(DownloadError::OtherError(format!(
         "Failed to download {}! Stop retrying!",
         file_info.name
     )))
