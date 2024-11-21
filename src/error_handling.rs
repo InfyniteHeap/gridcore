@@ -2,7 +2,7 @@
 //!
 //! Though [anyhow](https://crates.io/crates/anyhow) provides some ways
 //! to simplify how the Rust programmers handle recoverable errors,
-//! we still wish to provide concrate errors, so that we can exactly know
+//! we still wish to provide concrete errors, so that we can exactly know
 //! where an error happens.
 
 use std::error::Error;
