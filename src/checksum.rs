@@ -6,8 +6,8 @@ use std::path::Path;
 use sha1::{Digest, Sha1};
 use tokio::io::AsyncReadExt;
 
-// The avarage file size is about 256 KiB.
-const CAPACITY: usize = 262_144;
+// The average file size is about 256 KiB.
+const CAPACITY: usize = 0x4_0000;
 
 pub async fn calculate_sha1(file_path: &Path, file_name: &str) -> io::Result<String> {
     let mut file = file_system::open_file(file_path, file_name).await?;
