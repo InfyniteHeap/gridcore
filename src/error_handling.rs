@@ -33,7 +33,7 @@ impl Display for DownloadError {
             "{}",
             match self {
                 Self::InternetError(e) => format!("Internet error: {}", e),
-                Self::FileSystemError(e) => format!("Failed to write contents on disk: {}", e),
+                Self::FileSystemError(e) => format!("Failed to write contents to disk: {}", e),
                 Self::OtherError(e) => e.to_owned(),
             }
         )
