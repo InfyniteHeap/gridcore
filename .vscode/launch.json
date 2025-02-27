@@ -1,103 +1,88 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in library 'gridcore'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=gridcore"
-                ],
-                "filter": {
-                    "name": "gridcore",
-                    "kind": "lib"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug integration test 'auth_test'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--test=auth_test",
-                    "--package=gridcore"
-                ],
-                "filter": {
-                    "name": "auth_test",
-                    "kind": "test"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug integration test 'launch_test'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--test=launch_test",
-                    "--package=gridcore"
-                ],
-                "filter": {
-                    "name": "launch_test",
-                    "kind": "test"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug integration test 'mc_download_test'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--test=mc_download_test",
-                    "--package=gridcore"
-                ],
-                "filter": {
-                    "name": "mc_download_test",
-                    "kind": "test"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug integration test 'sha1_test'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--test=sha1_test",
-                    "--package=gridcore"
-                ],
-                "filter": {
-                    "name": "sha1_test",
-                    "kind": "test"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'gridcore'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=gridcore"],
+        "filter": {
+          "name": "gridcore",
+          "kind": "lib"
         }
-    ]
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'auth_test'",
+      "cargo": {
+        "args": ["test", "--no-run", "--test=auth_test", "--package=gridcore"],
+        "filter": {
+          "name": "auth_test",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'launch_test'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--test=launch_test",
+          "--package=gridcore"
+        ],
+        "filter": {
+          "name": "launch_test",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'mc_download_test'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--test=mc_download_test",
+          "--package=gridcore"
+        ],
+        "filter": {
+          "name": "mc_download_test",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'sha1_test'",
+      "cargo": {
+        "args": ["test", "--no-run", "--test=sha1_test", "--package=gridcore"],
+        "filter": {
+          "name": "sha1_test",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
 }

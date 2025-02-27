@@ -5,6 +5,7 @@ use reqwest::header::HeaderMap;
 use reqwest::Client;
 use serde_json::Value;
 
+// TODO: Should this be separated into two functions?
 /// Send POST request and receive response.
 pub(crate) async fn send_post_request(
     url: &str,

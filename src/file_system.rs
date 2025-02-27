@@ -8,10 +8,11 @@ use std::path::Path;
 use tokio::fs::{self, File};
 use tokio::io::{self, AsyncWriteExt};
 
-/// Create a directory.
+/// Creates a directory.
 ///
-/// Although function `create_file()` can automatically call this function, it is still meaningful
-/// to keep this function public as there might are some situations that only creating directories is required.
+/// Although function `create_file()` can automatically call this function,
+/// it is still meaningful to keep this function public as there might have some situations
+/// that only creating directories is what they needed.
 pub async fn create_dir(path: &Path) -> io::Result<()> {
     fs::create_dir_all(path).await
 }
@@ -53,7 +54,7 @@ pub async fn write_into_file(file_path: &Path, file_name: &str, contents: &[u8])
     Ok(())
 }
 
-/// Read the entire contents of a file into a string.
+/// Reads the entire contents of a file into a string.
 pub async fn read_file_to_string(file_path: &Path, file_name: &str) -> io::Result<String> {
     fs::read_to_string(file_path.join(file_name)).await
 }
