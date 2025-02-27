@@ -1,13 +1,12 @@
 # Contributing to gridcore
 
-Thank you for your interest in contributing to gridcore! You can fork this repository, create an independent branch
-alongside of the main branch, apply your changes and create a Pull Request!
+Thank you for your interest in contributing to gridcore! You can fork this repository, create an independent branch alongside the main branch, apply your changes, and submit a Pull Request!
 
 When you make your changes, please follow these code formats:
 
-1. The Order of Importing
+1. Order of Importing
 
-We first import items from local create, then the standard library, and last the third-party crates:
+We first import items from local modules, then the standard library, and finally third-party crates:
 
 ```rust
 use crate::mod_name::StructureName;
@@ -18,15 +17,15 @@ use std::sync::LazyLock;
 use tokio::fs::File;
 ```
 
-2. The Selection between Merging Importations and Flatting Importations
+2. Merging vs. Flattening Import Statements
 
-We merge these items into a pair of brackets: structures, enumerations and constants:
+We merge these items using braces for structures, enumerations, and constants:
 
 ```rust
 use crate::mod_name::{StructureName, EnumerationName, CONSTANT_NAME};
 ```
 
-Nested brackets are not accepted. This means you must split the nested items into another line:
+Nested braces are not allowed. Therefore, you must split nested items into separate lines:
 
 ```rust
 use std::sync::{Arc, RwLock};
@@ -41,7 +40,7 @@ use std::sync::mpsc::{channel, sync_channel};
 We follow this layout in a single code file:
 
 |             layout             |
-|:------------------------------:|
+| :----------------------------: |
 |          importations          |
 | constants and static variables |
 |  structures and enumerations   |

@@ -1,3 +1,5 @@
+//! # Error Handling
+//!
 //! The place where all the errors are handled.
 //!
 //! Though [anyhow](https://crates.io/crates/anyhow) provides some ways
@@ -23,7 +25,14 @@ macro_rules! derive_trait {
 pub enum DownloadError {
     InternetError(String),
     FileSystemError(String),
+    CheckIntegrityError,
     OtherError(String),
+}
+
+#[derive(Debug)]
+pub enum AuthError {
+    InternetError(String),
+    FileSystemError(String),
 }
 
 impl Display for DownloadError {
@@ -34,6 +43,7 @@ impl Display for DownloadError {
             match self {
                 Self::InternetError(e) => format!("Internet error: {}", e),
                 Self::FileSystemError(e) => format!("Failed to write contents to disk: {}", e),
+                Self::CheckIntegrityError => "Downloaded file is incomplete!".to_string(),
                 Self::OtherError(e) => e.to_owned(),
             }
         )

@@ -1,6 +1,6 @@
 //! # Microsoft OAuth2
 //!
-//! The module that is used for Minecraft genius verification.
+//! This module is used for Minecraft genuine verification.
 //!
 //! Since Mojang has deprecated Mojang account verification method,
 //! this module exclusively supports Microsoft OAuth2.
@@ -8,7 +8,7 @@
 use crate::file_system;
 use crate::http;
 use crate::json;
-use crate::path::CONFIGURATIONS_DIRECTORY;
+use crate::path::{CONFIG_DIRECTORY, PROFILE_FILE_NAME};
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -25,6 +25,9 @@ const REQUEST_ACCESS_TOKEN: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
 const CHECK_IF_PLAYER_OWNS_GAME: &str = "https://api.minecraftservices.com/entitlements/mcstore";
 const REQUEST_UUID_AND_USERNAME: &str = "https://api.minecraftservices.com/minecraft/profile";
+
+// This is the Azure client ID that is used to verify the application.
+const AZURE_CLIENT_ID: &str = "a425ebb8-6195-4be7-9418-e5492c5a4efa";
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -48,22 +51,24 @@ pub async fn request_microsoft_authorization_token(
         HeaderValue::from_static("application/x-www-form-urlencoded"),
     );
 
-    // The load that will be summitted.
+    // The load that will be submitted.
     let mut load = HashMap::new();
-    load.insert("client_id", "00000000402b5328");
+    load.insert("client_id", AZURE_CLIENT_ID);
     load.insert("code", authorization_code);
     load.insert("grant_type", "authorization_code");
     load.insert("redirect_uri", "https://login.live.com/oauth20_desktop.srf");
-    load.insert("scope", "service::user.auth.xboxlive.com::MBI_SSL");
+    load.insert("scope", "XboxLive.signin offline_access");
 
     // Send POST request and receive response.
     let response =
         http::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load).await?;
 
-    match &json::parse_from_string(&response).await.unwrap()["access_token"] {
-        Value::String(token) => Ok(token.to_owned()),
-        _ => unreachable!(),
-    }
+    Ok(
+        json::parse_from_string(&response).await.unwrap()["access_token"]
+            .as_str()
+            .unwrap()
+            .to_string(),
+    )
 }
 
 /// Microsoft authorization token -> Xbox token
@@ -88,10 +93,10 @@ pub async fn request_xbox_authentication_response(
 
     let response = http::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
 
-    match &json::parse_from_string(&response).await.unwrap()["Token"] {
-        Value::String(token) => Ok(token.to_owned()),
-        _ => unreachable!(),
-    }
+    Ok(json::parse_from_string(&response).await.unwrap()["Token"]
+        .as_str()
+        .unwrap()
+        .to_string())
 }
 
 /// Xbox token -> XSTS token, UHS
@@ -117,13 +122,16 @@ pub async fn request_xsts_authorization_response(
 
     let response = http::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
 
-    match (
-        &json::parse_from_string(&response).await.unwrap()["Token"],
-        &json::parse_from_string(&response).await.unwrap()["DisplayClaims"]["xui"][0]["uhs"],
-    ) {
-        (Value::String(token), Value::String(uhs)) => Ok((token.to_owned(), uhs.to_owned())),
-        _ => unreachable!(),
-    }
+    Ok((
+        json::parse_from_string(&response).await.unwrap()["Token"]
+            .as_str()
+            .unwrap()
+            .to_string(),
+        json::parse_from_string(&response).await.unwrap()["DisplayClaims"]["xui"][0]["uhs"]
+            .as_str()
+            .unwrap()
+            .to_string(),
+    ))
 }
 
 impl MinecraftProfile {
@@ -141,9 +149,10 @@ impl MinecraftProfile {
 
         let response = http::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
 
-        match &json::parse_from_string(&response).await.unwrap()["access_token"] {
-            Value::String(access_token) => self.access_token.clone_from(access_token),
-            _ => unreachable!(),
+        if let Value::String(access_token) =
+            &json::parse_from_string(&response).await.unwrap()["access_token"]
+        {
+            self.access_token.clone_from(access_token)
         }
 
         Ok(())
@@ -169,15 +178,12 @@ impl MinecraftProfile {
         let response =
             http::send_get_request(REQUEST_UUID_AND_USERNAME, &self.access_token).await?;
 
-        match (
+        if let (Value::String(username), Value::String(uuid)) = (
             &json::parse_from_string(&response).await.unwrap()["name"],
             &json::parse_from_string(&response).await.unwrap()["id"],
         ) {
-            (Value::String(username), Value::String(uuid)) => {
-                self.username.clone_from(username);
-                self.uuid.clone_from(uuid);
-            }
-            _ => unreachable!(),
+            self.username.clone_from(username);
+            self.uuid.clone_from(uuid);
         }
 
         Ok(())
@@ -187,8 +193,8 @@ impl MinecraftProfile {
         let contents = json::convert_to_string(self).await?;
 
         Ok(file_system::write_into_file(
-            Path::new(CONFIGURATIONS_DIRECTORY),
-            "profile.json",
+            Path::new(CONFIG_DIRECTORY),
+            PROFILE_FILE_NAME,
             contents.as_bytes(),
         )
         .await?)

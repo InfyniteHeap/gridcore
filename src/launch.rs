@@ -1,5 +1,5 @@
 use crate::json;
-use crate::path::{CONFIGURATIONS_DIRECTORY, MINECRAFT_ROOT};
+use crate::path::{CONFIG_DIRECTORY, MINECRAFT_ROOT, PROFILE_FILE_NAME};
 
 use std::collections::HashMap;
 use std::env::consts::{ARCH, OS};
@@ -18,6 +18,9 @@ pub struct LaunchArguments {
     pub jvm: Vec<String>,
 }
 
+/// Set the resolution of the game window.
+///
+/// In general, you're no need to set this manually.
 pub struct Resolution(pub u16, pub u16);
 
 pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Result<Vec<String>> {
@@ -30,10 +33,10 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
 
     // Get original launch arguments from JSON.
     if let Value::Object(args) = &data["arguments"] {
-        for (arg_ty, arg_v) in args {
+        for (arg_ty, arg_val) in args {
             match arg_ty.as_str() {
                 "jvm" => {
-                    if let Value::Array(jvm_args) = &arg_v[arg_ty] {
+                    if let Value::Array(jvm_args) = &arg_val[arg_ty] {
                         jvm_args.iter().for_each(|arg| {
                             if arg.is_string() {
                                 // We already identified that `arg` is a string.
@@ -65,7 +68,7 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
                     }
                 }
                 "game" => {
-                    if let Value::Array(game_args) = &arg_v[arg_ty] {
+                    if let Value::Array(game_args) = &arg_val[arg_ty] {
                         game_args.iter().for_each(|arg| {
                             if arg.is_string() {
                                 // We already identified that `arg` is a string.
@@ -76,7 +79,7 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
                         });
                     }
                 }
-                // According to JSON file, other cases will never reach out.
+                // According to JSON file, other cases will never reach.
                 _ => unreachable!(),
             }
         }
@@ -97,7 +100,7 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
     // We first handle jvm arguments.
 
     // Then handle game arguments.
-    let profile = json::read(Path::new(CONFIGURATIONS_DIRECTORY), "profile.json").await?;
+    let profile = json::read(Path::new(CONFIG_DIRECTORY), PROFILE_FILE_NAME).await?;
 
     let mut game_args = HashMap::with_capacity(CONFIG_NUMS);
     game_args.insert(
@@ -124,7 +127,7 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
     game_args.insert("user_type", String::from("msa"));
     game_args.insert("version_type", data["type"].as_str().unwrap().to_string());
 
-    let re = Regex::new(r"^\$\{(.*?)\}$").unwrap();
+    let re = Regex::new(r"^\$\{(.*?)}$")?;
 
     for arg in launch_args.game.iter_mut() {
         match game_args.get(&re.captures(arg).unwrap()[1]) {
