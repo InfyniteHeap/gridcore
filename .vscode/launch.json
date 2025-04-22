@@ -9,7 +9,12 @@
       "request": "launch",
       "name": "Debug unit tests in library 'gridcore'",
       "cargo": {
-        "args": ["test", "--no-run", "--lib", "--package=gridcore"],
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=gridcore"
+        ],
         "filter": {
           "name": "gridcore",
           "kind": "lib"
@@ -23,7 +28,12 @@
       "request": "launch",
       "name": "Debug integration test 'auth_test'",
       "cargo": {
-        "args": ["test", "--no-run", "--test=auth_test", "--package=gridcore"],
+        "args": [
+          "test",
+          "--no-run",
+          "--test=auth_test",
+          "--package=gridcore"
+        ],
         "filter": {
           "name": "auth_test",
           "kind": "test"
@@ -75,7 +85,12 @@
       "request": "launch",
       "name": "Debug integration test 'sha1_test'",
       "cargo": {
-        "args": ["test", "--no-run", "--test=sha1_test", "--package=gridcore"],
+        "args": [
+          "test",
+          "--no-run",
+          "--test=sha1_test",
+          "--package=gridcore"
+        ],
         "filter": {
           "name": "sha1_test",
           "kind": "test"
