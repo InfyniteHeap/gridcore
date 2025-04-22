@@ -13,14 +13,7 @@ const ASSETS_BANGBANG93: &str = "https://bmclapi2.bangbang93.com/assets";
 
 static DOWNLOAD_SOURCE: RwLock<DownloadSource> = RwLock::const_new(DownloadSource::Official);
 /// The global-shared client.
-static CLIENT: LazyLock<Arc<Client>> = LazyLock::new(|| {
-    Arc::new(
-        Client::builder()
-            .https_only(true)
-            .build()
-            .unwrap_or_default(),
-    )
-});
+static CLIENT: LazyLock<Arc<Client>> = LazyLock::new(|| Arc::new(Client::new()));
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum DownloadSource {
