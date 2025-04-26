@@ -18,7 +18,7 @@ pub struct LaunchArguments {
     pub jvm: Vec<String>,
 }
 
-/// Set the resolution of the game window.
+/// Sets the resolution of the game window.
 ///
 /// In general, you're no need to set this manually.
 pub struct Resolution(pub u16, pub u16);

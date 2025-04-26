@@ -6,7 +6,7 @@ use reqwest::Client;
 use serde_json::Value;
 
 // TODO: Should this be separated into two functions?
-/// Send POST request and receive response.
+/// Sends POST request and receive response.
 pub(crate) async fn send_post_request(
     url: &str,
     headers: Option<HeaderMap>,
@@ -61,7 +61,7 @@ pub(crate) async fn send_post_request(
     }
 }
 
-/// Send GET request and receive response.
+/// Sends GET request and receive response.
 pub(crate) async fn send_get_request(url: &str, token: &str) -> Result<String, reqwest::Error> {
     Client::new()
         .get(url)

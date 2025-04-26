@@ -59,7 +59,7 @@ pub async fn request_microsoft_authorization_token(
     load.insert("redirect_uri", "https://login.live.com/oauth20_desktop.srf");
     load.insert("scope", "XboxLive.signin offline_access");
 
-    // Send POST request and receive response.
+    // Sends POST request and receive response.
     let response =
         http::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load).await?;
 

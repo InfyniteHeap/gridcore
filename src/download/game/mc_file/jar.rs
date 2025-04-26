@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-/// Download `<vision_number>.jar` on local machine, e.g. `1.21.4.jar`.
+/// Downloads `<vision_number>.jar` on local machine, e.g. `1.21.5.jar`.
 pub(super) async fn download_jar(
     version: &str,
     data: &Value,

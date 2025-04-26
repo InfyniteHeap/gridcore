@@ -5,8 +5,8 @@ use std::path::Path;
 
 use serde_json::{Map, Value};
 
-/// Read contents in `version_manifest_v2.json`.
 pub(crate) async fn read_version_manifest() -> anyhow::Result<Vec<Map<String, Value>>> {
+/// Reads contents in `version_manifest_v2.json`.
     let manifest_path = format!("{}/versions", MINECRAFT_ROOT);
     let manifest_name = "version_manifest_v2.json";
 
@@ -25,7 +25,7 @@ pub(crate) async fn read_version_manifest() -> anyhow::Result<Vec<Map<String, Va
     Ok(manifest)
 }
 
-/// The return contents will display on UI interface.
+/// Lists Minecraft versions and lets frontend display them on UI interface.
 pub async fn list_versions() -> anyhow::Result<Vec<(String, String)>> {
     let version_manifest = read_version_manifest().await?;
 

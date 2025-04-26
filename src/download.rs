@@ -128,7 +128,7 @@ pub(crate) struct FileInfo {
 //     }
 // }
 
-/// Download a single file.
+/// Downloads a single file.
 ///
 /// It returns `Ok(())` when successfully downloaded a file and verified its integrity,
 /// or `Err(DownloadError)` when there are some errors happened during downloading.
@@ -139,6 +139,7 @@ pub(crate) async fn download_file(
     // This function will fast return when these conditions are satisfied:
     // 1. The target file exists.
     // 2. Its corresponding SHA1 value is equal to the provided one.
+    // HACK: There might has a better method to do so.
     if file_info.path.join(&file_info.name).exists()
         && (checksum::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1)
     {

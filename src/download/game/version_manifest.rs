@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-/// Download the manifest which contains metadata of all the Minecraft versions.
+/// Downloads the manifest which contains metadata of all the Minecraft versions.
 pub async fn download_version_manifest() -> anyhow::Result<()> {
     let manifest_path = format!("{}/versions", MINECRAFT_ROOT);
     let manifest_name = "version_manifest_v2.json";
@@ -38,7 +38,7 @@ pub async fn download_version_manifest() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Download the manifest which contains metadata of a specific Minecraft version.
+/// Downloads the manifest which contains metadata of a specific Minecraft version.
 pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result<()> {
     let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
     let manifest_name = format!("{}.json", version);

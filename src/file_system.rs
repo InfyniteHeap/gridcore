@@ -17,7 +17,7 @@ pub async fn create_dir(path: &Path) -> io::Result<()> {
     fs::create_dir_all(path).await
 }
 
-/// Opens a file in write-only mode, and return its handle.
+/// Opens a file in write-only mode, and returns its handle.
 ///
 /// This function can automatically create a directory
 /// if the target directory in which files will be stored later does not exist.
@@ -38,7 +38,7 @@ pub async fn remove_file(file_path: &Path, file_name: &str) -> io::Result<()> {
     fs::remove_file(file_path.join(file_name)).await
 }
 
-/// Opens a file in read-only mode, and return its handle.
+/// Opens a file in read-only mode, and returns its handle.
 pub async fn open_file(file_path: &Path, file_name: &str) -> io::Result<File> {
     File::open(file_path.join(file_name)).await
 }
