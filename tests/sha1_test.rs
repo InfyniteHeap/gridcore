@@ -6,8 +6,8 @@ use gridcore::checksum;
 #[tokio::test]
 // Note: Please run this test after downloading Minecraft files!
 async fn cal_sha1() {
-    let file_path = Path::new("./.minecraft/versions/1.21.1");
-    let file_name = "1.21.4.jar";
+    let file_path = Path::new("./.minecraft/versions/1.21.5");
+    let file_name = "1.21.5.jar";
 
     println!(
         "{}",
