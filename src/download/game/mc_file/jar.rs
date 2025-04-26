@@ -2,8 +2,6 @@ use crate::download::game::{self, BANGBANG93, CLIENT, Category, DOWNLOAD_SOURCE,
 use crate::download::{self, FileInfo};
 use crate::path::MINECRAFT_ROOT;
 
-use std::path::PathBuf;
-
 use serde_json::Value;
 
 /// Downloads `<vision_number>.jar` on local machine, e.g. `1.21.5.jar`.
@@ -27,7 +25,7 @@ pub(super) async fn download_jar(
         }
 
         let file_info = FileInfo {
-            path: PathBuf::from(file_path),
+            path: file_path.into(),
             name: file_name,
             url,
             sha1: sha1.to_owned(),

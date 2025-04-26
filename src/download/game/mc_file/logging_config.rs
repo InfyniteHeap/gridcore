@@ -2,8 +2,6 @@ use crate::download::game::CLIENT;
 use crate::download::{self, FileInfo};
 use crate::path::MINECRAFT_ROOT;
 
-use std::path::PathBuf;
-
 use serde_json::Value;
 
 pub(super) async fn download_logging_config(data: &Value) -> anyhow::Result<()> {
@@ -15,7 +13,7 @@ pub(super) async fn download_logging_config(data: &Value) -> anyhow::Result<()> 
         let file_path = format!("{}/assets/log_configs", MINECRAFT_ROOT);
 
         let file_info = FileInfo {
-            path: PathBuf::from(file_path),
+            path: file_path.into(),
             name: id.to_owned(),
             url: url.to_owned(),
             sha1: sha1.to_owned(),

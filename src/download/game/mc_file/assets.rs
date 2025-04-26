@@ -54,7 +54,7 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
                     let file_path = format!("{}/assets/objects/{}", MINECRAFT_ROOT, &hash[0..2]);
 
                     let file_info = FileInfo {
-                        path: PathBuf::from(file_path),
+                        path: file_path.into(),
                         name: hash.to_owned(),
                         url,
                         sha1: hash.to_owned(),
