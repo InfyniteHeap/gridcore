@@ -1,5 +1,5 @@
 use crate::download::game::{
-    DownloadSource, ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DOWNLOAD_SOURCE,
+    ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource,
 };
 use crate::download::{self, FileInfo};
 use crate::json;

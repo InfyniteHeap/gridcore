@@ -1,4 +1,4 @@
-use super::{DownloadSource::*, BANGBANG93, CLIENT, DOWNLOAD_SOURCE, OFFICIAL};
+use super::{BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource::*, OFFICIAL};
 use crate::download::{self, FileInfo};
 use crate::file_system;
 use crate::mc_version;

@@ -1,8 +1,8 @@
 use std::any::Any;
 use std::collections::HashMap;
 
-use reqwest::header::HeaderMap;
 use reqwest::Client;
+use reqwest::header::HeaderMap;
 use serde_json::Value;
 
 // TODO: Should this be separated into two functions?

@@ -13,9 +13,9 @@ use crate::path::{CONFIG_DIRECTORY, PROFILE_FILE_NAME};
 use std::collections::HashMap;
 use std::path::Path;
 
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE};
+use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 // These constants are URLs that will receive POST (some are GET) request and return response.
 const REQUEST_MICROSOFT_OAUTH2_TOKEN: &str = "https://login.live.com/oauth20_token.srf";

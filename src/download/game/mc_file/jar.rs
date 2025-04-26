@@ -1,4 +1,4 @@
-use crate::download::game::{self, Category, DownloadSource, BANGBANG93, CLIENT, DOWNLOAD_SOURCE};
+use crate::download::game::{self, BANGBANG93, CLIENT, Category, DOWNLOAD_SOURCE, DownloadSource};
 use crate::download::{self, FileInfo};
 use crate::path::MINECRAFT_ROOT;
 
