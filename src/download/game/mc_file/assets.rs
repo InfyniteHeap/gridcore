@@ -73,16 +73,12 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
     //     .for_each(|file_info| dtm.add_task(file_info, 3));
     // dtm.run_tasks().await;
 
-    let mut handles = Vec::new();
+    let mut num = files.len();
 
-    files.into_iter().for_each(|file_info| {
-        let handle = tokio::spawn(async move { download::download_file(&CLIENT, file_info).await });
-
-        handles.push(handle);
-    });
-
-    for handle in handles {
-        handle.await??;
+    for file_info in files {
+        println!("Remains {num} asset files");
+        download::download_file(&CLIENT, file_info).await?;
+        num -= 1;
     }
 
     Ok(())
