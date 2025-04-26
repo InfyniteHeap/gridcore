@@ -1,6 +1,5 @@
 use super::{BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource::*, OFFICIAL};
 use crate::download::{self, FileInfo};
-use crate::file_system;
 use crate::mc_version;
 use crate::path::MINECRAFT_ROOT;
 
@@ -24,16 +23,7 @@ pub async fn download_version_manifest() -> anyhow::Result<()> {
     // We always download this manifest regardless of the status of this file.
     // This is because: (1) we have no other ways to check integrity of this file,
     // and (2) we can fetch latest Minecraft information via this way.
-    let response = CLIENT.get(&url).send().await?;
-
-    if response.status().is_success() {
-        file_system::write_into_file(
-            Path::new(&manifest_path),
-            manifest_name,
-            &response.bytes().await?,
-        )
-        .await?;
-    }
+    download::download_file_unchecked(&CLIENT, Path::new(&manifest_path), manifest_name, &url).await?;
 
     Ok(())
 }

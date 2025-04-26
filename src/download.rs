@@ -11,30 +11,14 @@ use crate::checksum;
 use crate::error_handling::DownloadError;
 use crate::file_system;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use reqwest::Client;
+use reqwest::{Client, Response};
 use tokio::time;
 
 /// The wait time for a single download task.
 pub(crate) const DURATION: Duration = Duration::from_secs(10);
-// const RETRY_INTERVAL: Duration = Duration::from_secs(5);
-
-// /// The manager that manages download tasks.
-// pub(crate) struct DownloadTaskManager<'c> {
-//     client: &'c Client,
-//     queue: Arc<Mutex<VecDeque<DownloadTask>>>,
-//     semaphore: Arc<Semaphore>,
-// }
-
-// /// A single download task.
-// pub(crate) struct DownloadTask {
-//     file_info: FileInfo,
-//     max_retries: u8,
-//     current_retries: u8,
-//     last_attempt: Option<Instant>,
-// }
 
 #[derive(Clone)]
 pub(crate) struct FileInfo {
@@ -47,86 +31,6 @@ pub(crate) struct FileInfo {
     /// The SHA1 hash that is used to check integrity of the file.
     pub(crate) sha1: String,
 }
-
-// impl<'c> DownloadTaskManager<'c> {
-//     pub async fn new(client: &'c Client) -> Self {
-//         Self {
-//             client,
-//             queue: Arc::new(Mutex::new(VecDeque::new())),
-//             semaphore: Arc::new(Semaphore::new(*THREAD_COUNT.read().await)),
-//         }
-//     }
-
-//     pub fn add_task(&mut self, file_info: FileInfo, max_retries: u8) {
-//         let mut queue = self.queue.lock().unwrap();
-//         queue.push_back(DownloadTask {
-//             file_info,
-//             max_retries,
-//             current_retries: 0,
-//             last_attempt: None,
-//         });
-//     }
-
-//     pub async fn run_tasks(&self) {
-//         let mut handles = vec![];
-//         let queue = self.queue.clone();
-//         let client = self.client.clone();
-//         let semaphore = self.semaphore.clone();
-
-//         while let Ok(permit) = semaphore.acquire().await {
-//             let queue = queue.clone();
-//             let client = client.clone();
-
-//             let handle = tokio::spawn(async move {
-//                 loop {
-//                     let task = {
-//                         let mut queue = queue.lock().unwrap();
-//                         queue.pop_front()
-//                     };
-
-//                     let Some(mut task) = task else {
-//                         break;
-//                     };
-
-//                     // Check retry interval
-//                     if let Some(last) = task.last_attempt {
-//                         if let Some(remaining) = RETRY_INTERVAL.checked_sub(last.elapsed()) {
-//                             time::sleep(remaining).await;
-//                         }
-//                     }
-
-//                     // Execute download
-//                     let result = download_file(&client, &task.file_info).await;
-//                     task.last_attempt = Some(Instant::now());
-
-//                     match result {
-//                         Ok(_) => {
-//                             println!("Downloaded: {}", task.file_info.url);
-//                         }
-//                         Err(e) => {
-//                             eprintln!("Download failed: {} ({})", task.file_info.url, e);
-//                             task.current_retries += 1;
-
-//                             if task.current_retries < task.max_retries {
-//                                 let mut queue = queue.lock().unwrap();
-//                                 queue.push_back(task);
-//                             } else {
-//                                 eprintln!("Permanently failed: {}", task.file_info.url);
-//                             }
-//                         }
-//                     }
-//                 }
-//                 drop(permit);
-//             });
-
-//             handles.push(handle);
-//         }
-
-//         for handle in handles {
-//             handle.await.unwrap();
-//         }
-//     }
-// }
 
 /// Downloads a single file.
 ///
@@ -146,31 +50,55 @@ pub(crate) async fn download_file(
         return Ok(());
     }
 
-    let response = match time::timeout(DURATION, client.get(&file_info.url).send()).await {
+    download_file_unchecked(client, &file_info.path, &file_info.name, &file_info.url).await?;
+
+    // To check whether the file is successfully downloaded,
+    // we must verify its SHA1 value.
+    // If the value is equal to the given one,
+    // We can confirm that this file is successfully
+    // downloaded!
+    if checksum::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1 {
+        Ok(())
+    } else {
+        Err(DownloadError::CheckIntegrityError)
+    }
+}
+
+pub(crate) async fn download_file_unchecked(
+    client: &Client,
+    path: &Path,
+    name: &str,
+    url: &str,
+) -> Result<(), DownloadError> {
+    let response = match time::timeout(DURATION, get_file_from_remote(client, url)).await {
         Ok(res) => res?,
-        Err(_) => {
-            return Err(DownloadError::InternetError(
-                "Time out when waiting for response from remote server!".to_string(),
-            ));
+        Err(e) => {
+            return Err(DownloadError::InternetError(format!(
+                r#"
+Time out when waiting for response from remote server!
+File details:
+    Name: {},
+    path: {},
+    URL: {},
+Error details: {},
+                "#,
+                name,
+                path.to_string_lossy(),
+                url,
+                e
+            )));
         }
     };
 
     if response.status().is_success() {
-        // If success, we write raw bytes into a file.
-        file_system::write_into_file(&file_info.path, &file_info.name, &response.bytes().await?)
-            .await?;
-
-        // To check whether the file is successfully downloaded,
-        // we must verify its SHA1 value.
-        // If the value is equal to the given one,
-        // We can confirm that this file is successfully
-        // downloaded!
-        if checksum::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1 {
-            Ok(())
-        } else {
-            Err(DownloadError::CheckIntegrityError)
-        }
+        file_system::write_into_file(path, name, &response.bytes().await?)
+            .await
+            .map_err(Into::into)
     } else {
         Err(DownloadError::InternetError(response.status().to_string()))
     }
+}
+
+async fn get_file_from_remote(client: &Client, url: &str) -> Result<Response, DownloadError> {
+    client.get(url).send().await.map_err(Into::into)
 }
