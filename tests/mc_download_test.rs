@@ -3,7 +3,7 @@ use gridcore::utils;
 
 #[tokio::test]
 async fn download_mc() {
-    let version = "1.21.4";
+    let version = "1.21.5";
 
     game::select_download_source(DownloadSource::Official).await;
     utils::set_thread_count(32).await;
