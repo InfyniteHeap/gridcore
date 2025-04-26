@@ -45,28 +45,24 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
 
     let manifest = mc_version::read_version_manifest().await?;
 
-    for ver in manifest {
-        if ver["id"] == version {
-            if let (Value::String(url), Value::String(sha1)) = (&ver["url"], &ver["sha1"]) {
-                let mut url = url.to_owned();
+    let ver = manifest[version].clone();
 
-                if *DOWNLOAD_SOURCE.read().await == Bangbang93 {
-                    let len = "https://piston-meta.mojang.com/".len();
-                    url = format!("{}/{}", BANGBANG93, &url[len..]);
-                }
+    if let (Value::String(url), Value::String(sha1)) = (&ver["url"], &ver["sha1"]) {
+        let mut url = url.to_owned();
 
-                let file_info = FileInfo {
-                    path: PathBuf::from(manifest_path),
-                    name: manifest_name,
-                    url,
-                    sha1: sha1.to_owned(),
-                };
-
-                download::download_file(&CLIENT, file_info).await?
-            }
-
-            break;
+        if *DOWNLOAD_SOURCE.read().await == Bangbang93 {
+            let len = "https://piston-meta.mojang.com/".len();
+            url = format!("{}/{}", BANGBANG93, &url[len..]);
         }
+
+        let file_info = FileInfo {
+            path: PathBuf::from(manifest_path),
+            name: manifest_name,
+            url,
+            sha1: sha1.to_owned(),
+        };
+
+        download::download_file(&CLIENT, file_info).await?
     }
 
     Ok(())
