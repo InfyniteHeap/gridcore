@@ -1,6 +1,8 @@
-use crate::download::game::{BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource};
-use crate::download::{self, FileInfo};
+use crate::managers::game::download::{
+    BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource,
+};
 use crate::path::MINECRAFT_ROOT;
+use crate::utils::downloader::{self, FileInfo};
 
 use std::env::consts::OS;
 use std::path::PathBuf;
@@ -107,7 +109,7 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
 
     for file_info in files {
         println!("Remains {num} library files");
-        download::download_file(&CLIENT, file_info).await?;
+        downloader::download_file(&CLIENT, file_info).await?;
         num -= 1;
     }
 

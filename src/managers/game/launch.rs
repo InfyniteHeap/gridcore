@@ -1,5 +1,5 @@
-use crate::json;
 use crate::path::{CONFIG_DIRECTORY, MINECRAFT_ROOT, PROFILE_FILE_NAME};
+use crate::utils::json_processer;
 
 use std::collections::HashMap;
 use std::env::consts::{ARCH, OS};
@@ -28,7 +28,7 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
     let manifest_path = Path::new(&manifest_path);
     let manifest_name = format!("{}.json", version);
 
-    let data = json::read(manifest_path, &manifest_name).await?;
+    let data = json_processer::read(manifest_path, &manifest_name).await?;
     let mut launch_args = LaunchArguments::default();
 
     // Get original launch arguments from JSON.
@@ -100,7 +100,7 @@ pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Re
     // We first handle jvm arguments.
 
     // Then handle game arguments.
-    let profile = json::read(Path::new(CONFIG_DIRECTORY), PROFILE_FILE_NAME).await?;
+    let profile = json_processer::read(Path::new(CONFIG_DIRECTORY), PROFILE_FILE_NAME).await?;
 
     let mut game_args = HashMap::with_capacity(CONFIG_NUMS);
     game_args.insert(

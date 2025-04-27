@@ -4,12 +4,9 @@
 
 // TODO: Implement multi-threaded downloading.
 
-pub mod game;
-pub mod mods;
-
-use crate::checksum;
 use crate::error_handling::DownloadError;
 use crate::file_system;
+use crate::utils::sha1_checker;
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -45,7 +42,7 @@ pub(crate) async fn download_file(
     // 2. Its corresponding SHA1 value is equal to the provided one.
     // HACK: There might has a better method to do so.
     if file_info.path.join(&file_info.name).exists()
-        && (checksum::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1)
+        && (sha1_checker::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1)
     {
         return Ok(());
     }
@@ -57,7 +54,7 @@ pub(crate) async fn download_file(
     // If the value is equal to the given one,
     // We can confirm that this file is successfully
     // downloaded!
-    if checksum::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1 {
+    if sha1_checker::calculate_sha1(&file_info.path, &file_info.name).await? == file_info.sha1 {
         Ok(())
     } else {
         Err(DownloadError::CheckIntegrityError)

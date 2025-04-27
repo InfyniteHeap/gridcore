@@ -1,6 +1,6 @@
-use crate::download::game::CLIENT;
-use crate::download::{self, FileInfo};
+use crate::managers::game::download::CLIENT;
 use crate::path::MINECRAFT_ROOT;
+use crate::utils::downloader::{self, FileInfo};
 
 use serde_json::Value;
 
@@ -19,7 +19,7 @@ pub(super) async fn download_logging_config(data: &Value) -> anyhow::Result<()> 
             sha1: sha1.to_owned(),
         };
 
-        download::download_file(&CLIENT, file_info).await?;
+        downloader::download_file(&CLIENT, file_info).await?;
     }
 
     Ok(())

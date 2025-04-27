@@ -1,9 +1,9 @@
-use crate::download::game::{
+use crate::managers::game::download::{
     ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource,
 };
-use crate::download::{self, FileInfo};
-use crate::json;
 use crate::path::MINECRAFT_ROOT;
+use crate::utils::downloader::{self, FileInfo};
+use crate::utils::json_processer;
 
 use std::path::{Path, PathBuf};
 
@@ -34,9 +34,9 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
             sha1: sha1.to_owned(),
         };
 
-        download::download_file(&CLIENT, file_info).await?;
+        downloader::download_file(&CLIENT, file_info).await?;
 
-        let data = json::read(Path::new(&file_path), &file_name).await?;
+        let data = json_processer::read(Path::new(&file_path), &file_name).await?;
 
         if let Value::Object(obj) = &data["objects"] {
             for (_, key) in obj {
@@ -77,7 +77,7 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
 
     for file_info in files {
         println!("Remains {num} asset files");
-        download::download_file(&CLIENT, file_info).await?;
+        downloader::download_file(&CLIENT, file_info).await?;
         num -= 1;
     }
 

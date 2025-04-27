@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use gridcore::checksum;
+use gridcore::utils::sha1_checker;
 
 #[ignore = "This test case must be manually tested on local machine."]
 #[tokio::test]
@@ -11,7 +11,7 @@ async fn cal_sha1() {
 
     println!(
         "{}",
-        checksum::calculate_sha1(file_path, file_name)
+        sha1_checker::calculate_sha1(file_path, file_name)
             .await
             .unwrap()
     )

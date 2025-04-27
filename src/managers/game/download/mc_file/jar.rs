@@ -1,6 +1,8 @@
-use crate::download::game::{self, BANGBANG93, CLIENT, Category, DOWNLOAD_SOURCE, DownloadSource};
-use crate::download::{self, FileInfo};
+use crate::managers::game::download::{
+    self, BANGBANG93, CLIENT, Category, DOWNLOAD_SOURCE, DownloadSource,
+};
 use crate::path::MINECRAFT_ROOT;
+use crate::utils::downloader::{self, FileInfo};
 
 use serde_json::Value;
 
@@ -14,8 +16,8 @@ pub(super) async fn download_jar(
     let file_name = format!("{}.jar", version);
 
     if let (Value::String(url), Value::String(sha1)) = (
-        &data["downloads"][game::select_category(&category).await]["url"],
-        &data["downloads"][game::select_category(&category).await]["sha1"],
+        &data["downloads"][download::select_category(&category).await]["url"],
+        &data["downloads"][download::select_category(&category).await]["sha1"],
     ) {
         let mut url = url.to_owned();
 
@@ -31,7 +33,7 @@ pub(super) async fn download_jar(
             sha1: sha1.to_owned(),
         };
 
-        download::download_file(&CLIENT, file_info).await?;
+        downloader::download_file(&CLIENT, file_info).await?;
     }
 
     Ok(())

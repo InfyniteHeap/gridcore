@@ -4,8 +4,8 @@ mod libraries;
 mod logging_config;
 
 use super::Category;
-use crate::json;
 use crate::path::MINECRAFT_ROOT;
+use crate::utils::json_processer;
 
 use std::path::Path;
 
@@ -14,7 +14,7 @@ pub async fn download_files(version: &str, category: Category) -> anyhow::Result
     let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
     let manifest_name = format!("{}.json", version);
 
-    let data = json::read(Path::new(&manifest_path), &manifest_name).await?;
+    let data = json_processer::read(Path::new(&manifest_path), &manifest_name).await?;
 
     // let download_manifest = Vec::new();
 
