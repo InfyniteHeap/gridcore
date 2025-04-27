@@ -1,9 +1,10 @@
 use super::{BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource::*, OFFICIAL};
 use crate::managers::version;
 use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{self, FileInfo};
+use crate::utils::downloader::{Downloader, FileInfo};
 
-use std::path::{Path, PathBuf};
+use std::borrow::Cow;
+use std::path::Path;
 
 use serde_json::Value;
 
@@ -23,8 +24,14 @@ pub async fn download_version_manifest() -> anyhow::Result<()> {
     // We always download this manifest regardless of the status of this file.
     // This is because: (1) we have no other ways to check integrity of this file,
     // and (2) we can fetch latest Minecraft information via this way.
-    downloader::download_file_unchecked(&CLIENT, Path::new(&manifest_path), manifest_name, &url)
-        .await?;
+    let file_info = FileInfo {
+        path: Cow::from(Path::new(&manifest_path)),
+        name: Cow::from(manifest_name),
+        url: url.into(),
+        sha1: None,
+    };
+    let downloader = Downloader::new(&CLIENT, &file_info);
+    downloader.download_file().await?;
 
     Ok(())
 }
@@ -47,13 +54,13 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
         }
 
         let file_info = FileInfo {
-            path: PathBuf::from(manifest_path),
-            name: manifest_name,
-            url,
-            sha1: sha1.to_owned(),
+            path: Cow::from(Path::new(&manifest_path)),
+            name: manifest_name.into(),
+            url: url.into(),
+            sha1: Some(sha1.into()),
         };
-
-        downloader::download_file(&CLIENT, file_info).await?
+        let downloader = Downloader::new(&CLIENT, &file_info);
+        downloader.download_file().await?;
     }
 
     Ok(())

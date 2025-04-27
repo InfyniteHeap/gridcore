@@ -2,7 +2,10 @@ use crate::managers::game::download::{
     self, BANGBANG93, CLIENT, Category, DOWNLOAD_SOURCE, DownloadSource,
 };
 use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{self, FileInfo};
+use crate::utils::downloader::{Downloader, FileInfo};
+
+use std::borrow::Cow;
+use std::path::Path;
 
 use serde_json::Value;
 
@@ -27,13 +30,13 @@ pub(super) async fn download_jar(
         }
 
         let file_info = FileInfo {
-            path: file_path.into(),
-            name: file_name,
-            url,
-            sha1: sha1.to_owned(),
+            path: Cow::from(Path::new(&file_path)),
+            name: file_name.into(),
+            url: url.into(),
+            sha1: Some(Cow::from(sha1)),
         };
-
-        downloader::download_file(&CLIENT, file_info).await?;
+        let downloader = Downloader::new(&CLIENT, &file_info);
+        downloader.download_file().await?;
     }
 
     Ok(())

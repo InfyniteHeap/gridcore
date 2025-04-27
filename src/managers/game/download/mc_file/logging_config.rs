@@ -1,6 +1,9 @@
 use crate::managers::game::download::CLIENT;
 use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{self, FileInfo};
+use crate::utils::downloader::{Downloader, FileInfo};
+
+use std::borrow::Cow;
+use std::path::Path;
 
 use serde_json::Value;
 
@@ -13,13 +16,13 @@ pub(super) async fn download_logging_config(data: &Value) -> anyhow::Result<()> 
         let file_path = format!("{}/assets/log_configs", MINECRAFT_ROOT);
 
         let file_info = FileInfo {
-            path: file_path.into(),
-            name: id.to_owned(),
-            url: url.to_owned(),
-            sha1: sha1.to_owned(),
+            path: Cow::from(Path::new(&file_path)),
+            name: Cow::from(id),
+            url: Cow::from(url),
+            sha1: Some(Cow::from(sha1)),
         };
-
-        downloader::download_file(&CLIENT, file_info).await?;
+        let downloader = Downloader::new(&CLIENT, &file_info);
+        downloader.download_file().await?;
     }
 
     Ok(())

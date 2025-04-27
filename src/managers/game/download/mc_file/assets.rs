@@ -2,9 +2,10 @@ use crate::managers::game::download::{
     ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource,
 };
 use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{self, FileInfo};
+use crate::utils::downloader::{Downloader, FileInfo};
 use crate::utils::json_processer;
 
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -28,13 +29,13 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
         let file_name = format!("{}.json", id);
 
         let file_info = FileInfo {
-            path: PathBuf::from(&file_path),
-            name: file_name.clone(),
-            url,
-            sha1: sha1.to_owned(),
+            path: Cow::from(Path::new(&file_path)),
+            name: Cow::from(&file_name),
+            url: url.into(),
+            sha1: Some(Cow::from(sha1)),
         };
-
-        downloader::download_file(&CLIENT, file_info).await?;
+        let downloader = Downloader::new(&CLIENT, &file_info);
+        downloader.download_file().await?;
 
         let data = json_processer::read(Path::new(&file_path), &file_name).await?;
 
@@ -48,16 +49,16 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
                             DownloadSource::Bangbang93 => ASSETS_BANGBANG93,
                         },
                         &hash[0..2],
-                        hash
+                        &hash
                     );
 
                     let file_path = format!("{}/assets/objects/{}", MINECRAFT_ROOT, &hash[0..2]);
 
                     let file_info = FileInfo {
-                        path: file_path.into(),
-                        name: hash.to_owned(),
-                        url,
-                        sha1: hash.to_owned(),
+                        path: Cow::from(PathBuf::from(&file_path)),
+                        name: Cow::from(hash.clone()),
+                        url: url.into(),
+                        sha1: Some(Cow::from(hash.clone())),
                     };
 
                     files.push(file_info);
@@ -77,7 +78,10 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
 
     for file_info in files {
         println!("Remains {num} asset files");
-        downloader::download_file(&CLIENT, file_info).await?;
+
+        let downloader = Downloader::new(&CLIENT, &file_info);
+        downloader.download_file().await?;
+
         num -= 1;
     }
 

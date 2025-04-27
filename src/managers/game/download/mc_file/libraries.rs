@@ -1,7 +1,8 @@
 use crate::managers::game::download::{BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource};
 use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{self, FileInfo};
+use crate::utils::downloader::{Downloader, FileInfo};
 
+use std::borrow::Cow;
 use std::env::consts::OS;
 use std::path::PathBuf;
 
@@ -42,10 +43,10 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
                     });
 
                     let file_info = FileInfo {
-                        path: PathBuf::from(file_path),
-                        name: file_name.to_string(),
-                        url,
-                        sha1: sha1.to_owned(),
+                        path: Cow::from(PathBuf::from(&file_path)),
+                        name: Cow::from(file_name),
+                        url: url.into(),
+                        sha1: Some(Cow::from(sha1)),
                     };
 
                     files.push(file_info);
@@ -79,10 +80,10 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
                     });
 
                     let file_info = FileInfo {
-                        path: PathBuf::from(file_path),
-                        name: file_name.to_string(),
-                        url,
-                        sha1: sha1.to_owned(),
+                        path: Cow::from(PathBuf::from(&file_path)),
+                        name: Cow::from(file_name),
+                        url: url.into(),
+                        sha1: Some(Cow::from(sha1)),
                     };
 
                     files.push(file_info);
@@ -107,7 +108,10 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
 
     for file_info in files {
         println!("Remains {num} library files");
-        downloader::download_file(&CLIENT, file_info).await?;
+
+        let downloader = Downloader::new(&CLIENT, &file_info);
+        downloader.download_file().await?;
+
         num -= 1;
     }
 
