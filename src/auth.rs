@@ -7,8 +7,8 @@
 
 use crate::file_system;
 use crate::path::{CONFIG_DIRECTORY, PROFILE_FILE_NAME};
-use crate::utils::request_processer;
 use crate::utils::json_processer;
+use crate::utils::request_processer;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -61,7 +61,8 @@ pub async fn request_microsoft_authorization_token(
 
     // Sends POST request and receive response.
     let response =
-        request_processer::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load).await?;
+        request_processer::send_post_request(REQUEST_MICROSOFT_OAUTH2_TOKEN, Some(headers), &load)
+            .await?;
 
     Ok(
         json_processer::parse_from_string(&response).await.unwrap()["access_token"]
@@ -91,12 +92,15 @@ pub async fn request_xbox_authentication_response(
         }
     );
 
-    let response = request_processer::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
+    let response =
+        request_processer::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
 
-    Ok(json_processer::parse_from_string(&response).await.unwrap()["Token"]
-        .as_str()
-        .unwrap()
-        .to_string())
+    Ok(
+        json_processer::parse_from_string(&response).await.unwrap()["Token"]
+            .as_str()
+            .unwrap()
+            .to_string(),
+    )
 }
 
 /// Xbox token -> XSTS token, UHS
@@ -120,18 +124,22 @@ pub async fn request_xsts_authorization_response(
         }
     );
 
-    let response = request_processer::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
+    let response =
+        request_processer::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
 
-    Ok((
-        json_processer::parse_from_string(&response).await.unwrap()["Token"]
-            .as_str()
-            .unwrap()
-            .to_string(),
-        json_processer::parse_from_string(&response).await.unwrap()["DisplayClaims"]["xui"][0]["uhs"]
-            .as_str()
-            .unwrap()
-            .to_string(),
-    ))
+    Ok(
+        (
+            json_processer::parse_from_string(&response).await.unwrap()["Token"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+            json_processer::parse_from_string(&response).await.unwrap()["DisplayClaims"]["xui"][0]
+                ["uhs"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        ),
+    )
 }
 
 impl MinecraftProfile {
@@ -147,7 +155,8 @@ impl MinecraftProfile {
             }
         );
 
-        let response = request_processer::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
+        let response =
+            request_processer::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
 
         if let Value::String(access_token) =
             &json_processer::parse_from_string(&response).await.unwrap()["access_token"]
@@ -160,9 +169,12 @@ impl MinecraftProfile {
 
     pub async fn check_if_player_owns_game(&self) -> Result<bool, reqwest::Error> {
         let response =
-            request_processer::send_get_request(CHECK_IF_PLAYER_OWNS_GAME, &self.access_token).await?;
+            request_processer::send_get_request(CHECK_IF_PLAYER_OWNS_GAME, &self.access_token)
+                .await?;
 
-        if let Value::Array(items) = &json_processer::parse_from_string(&response).await.unwrap()["items"] {
+        if let Value::Array(items) =
+            &json_processer::parse_from_string(&response).await.unwrap()["items"]
+        {
             if !items.is_empty() {
                 Ok(true)
             } else {
@@ -176,7 +188,8 @@ impl MinecraftProfile {
     /// Minecraft access token -> Minecraft username, Minecraft UUID
     pub async fn request_uuid_and_username_response(&mut self) -> Result<(), reqwest::Error> {
         let response =
-            request_processer::send_get_request(REQUEST_UUID_AND_USERNAME, &self.access_token).await?;
+            request_processer::send_get_request(REQUEST_UUID_AND_USERNAME, &self.access_token)
+                .await?;
 
         if let (Value::String(username), Value::String(uuid)) = (
             &json_processer::parse_from_string(&response).await.unwrap()["name"],
