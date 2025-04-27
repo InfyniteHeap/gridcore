@@ -35,7 +35,7 @@ pub(crate) struct Downloader<'d, 'f: 'd> {
 }
 
 impl<'d, 'f: 'd> Downloader<'d, 'f> {
-    pub(crate) fn new(client: &'d Client, file_info: &'f FileInfo) -> Self {
+    pub(crate) fn new(client: &'static Client, file_info: &'f FileInfo) -> Self {
         Self { client, file_info }
     }
 
