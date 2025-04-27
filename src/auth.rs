@@ -65,7 +65,7 @@ pub async fn request_microsoft_authorization_token(
             .await?;
 
     Ok(
-        json_processer::parse_from_string(&response).await.unwrap()["access_token"]
+        json_processer::parse_from_string(&response).unwrap()["access_token"]
             .as_str()
             .unwrap()
             .to_string(),
@@ -96,7 +96,7 @@ pub async fn request_xbox_authentication_response(
         request_processer::send_post_request(XBOX_AUTHENTICATE, Some(headers), &load).await?;
 
     Ok(
-        json_processer::parse_from_string(&response).await.unwrap()["Token"]
+        json_processer::parse_from_string(&response).unwrap()["Token"]
             .as_str()
             .unwrap()
             .to_string(),
@@ -127,19 +127,16 @@ pub async fn request_xsts_authorization_response(
     let response =
         request_processer::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
 
-    Ok(
-        (
-            json_processer::parse_from_string(&response).await.unwrap()["Token"]
-                .as_str()
-                .unwrap()
-                .to_string(),
-            json_processer::parse_from_string(&response).await.unwrap()["DisplayClaims"]["xui"][0]
-                ["uhs"]
-                .as_str()
-                .unwrap()
-                .to_string(),
-        ),
-    )
+    Ok((
+        json_processer::parse_from_string(&response).unwrap()["Token"]
+            .as_str()
+            .unwrap()
+            .to_string(),
+        json_processer::parse_from_string(&response).unwrap()["DisplayClaims"]["xui"][0]["uhs"]
+            .as_str()
+            .unwrap()
+            .to_string(),
+    ))
 }
 
 impl MinecraftProfile {
@@ -159,7 +156,7 @@ impl MinecraftProfile {
             request_processer::send_post_request(REQUEST_ACCESS_TOKEN, None, &load).await?;
 
         if let Value::String(access_token) =
-            &json_processer::parse_from_string(&response).await.unwrap()["access_token"]
+            &json_processer::parse_from_string(&response).unwrap()["access_token"]
         {
             self.access_token.clone_from(access_token)
         }
@@ -172,8 +169,7 @@ impl MinecraftProfile {
             request_processer::send_get_request(CHECK_IF_PLAYER_OWNS_GAME, &self.access_token)
                 .await?;
 
-        if let Value::Array(items) =
-            &json_processer::parse_from_string(&response).await.unwrap()["items"]
+        if let Value::Array(items) = &json_processer::parse_from_string(&response).unwrap()["items"]
         {
             if !items.is_empty() {
                 Ok(true)
@@ -192,8 +188,8 @@ impl MinecraftProfile {
                 .await?;
 
         if let (Value::String(username), Value::String(uuid)) = (
-            &json_processer::parse_from_string(&response).await.unwrap()["name"],
-            &json_processer::parse_from_string(&response).await.unwrap()["id"],
+            &json_processer::parse_from_string(&response).unwrap()["name"],
+            &json_processer::parse_from_string(&response).unwrap()["id"],
         ) {
             self.username.clone_from(username);
             self.uuid.clone_from(uuid);
@@ -203,7 +199,7 @@ impl MinecraftProfile {
     }
 
     pub async fn save_to_file(&self) -> anyhow::Result<()> {
-        let contents = json_processer::convert_to_string(self).await?;
+        let contents = json_processer::convert_to_string(self)?;
 
         Ok(file_system::write_into_file(
             Path::new(CONFIG_DIRECTORY),

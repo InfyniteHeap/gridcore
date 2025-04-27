@@ -8,7 +8,7 @@ use serde_json::Value;
 /// Parse JSON from string.
 ///
 /// This is usually used when parsing JSON directly got from Internet.
-pub async fn parse_from_string(json: &str) -> serde_json::Result<Value> {
+pub fn parse_from_string(json: &str) -> serde_json::Result<Value> {
     serde_json::from_str::<Value>(json)
 }
 
@@ -17,10 +17,10 @@ pub async fn parse_from_string(json: &str) -> serde_json::Result<Value> {
 /// This is usually used when parsing JSON stored on local machine.
 pub async fn read(json_path: &Path, json_name: &str) -> anyhow::Result<Value> {
     let json_file = file_system::read_file_to_string(json_path, json_name).await?;
-    Ok(parse_from_string(&json_file).await?)
+    Ok(parse_from_string(&json_file)?)
 }
 
 /// Convert an instance into serialized JSON data.
-pub async fn convert_to_string(json: impl Serialize) -> serde_json::Result<String> {
+pub fn convert_to_string(json: impl Serialize) -> serde_json::Result<String> {
     serde_json::to_string_pretty(&json)
 }

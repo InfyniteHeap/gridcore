@@ -30,7 +30,7 @@ pub async fn select_download_source(res: DownloadSource) {
     *DOWNLOAD_SOURCE.write().await = res;
 }
 
-async fn select_category(category: &Category) -> &'static str {
+fn select_category(category: &Category) -> &'static str {
     match category {
         Category::Client => "client",
         Category::Server => "server",

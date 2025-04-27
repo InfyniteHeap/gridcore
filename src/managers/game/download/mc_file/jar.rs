@@ -19,8 +19,8 @@ pub(super) async fn download_jar(
     let file_name = format!("{}.jar", version);
 
     if let (Value::String(url), Value::String(sha1)) = (
-        &data["downloads"][download::select_category(&category).await]["url"],
-        &data["downloads"][download::select_category(&category).await]["sha1"],
+        &data["downloads"][download::select_category(&category)]["url"],
+        &data["downloads"][download::select_category(&category)]["sha1"],
     ) {
         let mut url = url.to_owned();
 
