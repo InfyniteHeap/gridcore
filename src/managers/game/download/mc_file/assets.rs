@@ -34,7 +34,7 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
             url: url.into(),
             sha1: Some(Cow::from(sha1)),
         };
-        let downloader = Downloader::new(&CLIENT, &file_info);
+        let downloader = Downloader::new(&CLIENT, file_info);
         downloader.download_file().await?;
 
         let data = json_processer::read(Path::new(&file_path), &file_name).await?;
@@ -79,7 +79,7 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
     for file_info in files {
         println!("Remains {num} asset files");
 
-        let downloader = Downloader::new(&CLIENT, &file_info);
+        let downloader = Downloader::new(&CLIENT, file_info);
         downloader.download_file().await?;
 
         num -= 1;

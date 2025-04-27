@@ -109,7 +109,7 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
     for file_info in files {
         println!("Remains {num} library files");
 
-        let downloader = Downloader::new(&CLIENT, &file_info);
+        let downloader = Downloader::new(&CLIENT, file_info);
         downloader.download_file().await?;
 
         num -= 1;

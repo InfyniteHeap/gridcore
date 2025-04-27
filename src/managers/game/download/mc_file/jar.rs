@@ -35,7 +35,7 @@ pub(super) async fn download_jar(
             url: url.into(),
             sha1: Some(Cow::from(sha1)),
         };
-        let downloader = Downloader::new(&CLIENT, &file_info);
+        let downloader = Downloader::new(&CLIENT, file_info);
         downloader.download_file().await?;
     }
 

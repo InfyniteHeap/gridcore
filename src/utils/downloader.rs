@@ -31,11 +31,11 @@ pub(crate) struct FileInfo<'f> {
 
 pub(crate) struct Downloader<'d, 'f: 'd> {
     client: &'d Client,
-    file_info: &'d FileInfo<'f>,
+    file_info: FileInfo<'f>,
 }
 
 impl<'d, 'f: 'd> Downloader<'d, 'f> {
-    pub(crate) fn new(client: &'static Client, file_info: &'f FileInfo) -> Self {
+    pub(crate) fn new(client: &'static Client, file_info: FileInfo<'f>) -> Self {
         Self { client, file_info }
     }
 

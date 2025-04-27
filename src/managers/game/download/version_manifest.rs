@@ -30,7 +30,7 @@ pub async fn download_version_manifest() -> anyhow::Result<()> {
         url: url.into(),
         sha1: None,
     };
-    let downloader = Downloader::new(&CLIENT, &file_info);
+    let downloader = Downloader::new(&CLIENT, file_info);
     downloader.download_file().await?;
 
     Ok(())
@@ -59,7 +59,7 @@ pub async fn download_specific_version_manifest(version: &str) -> anyhow::Result
             url: url.into(),
             sha1: Some(sha1.into()),
         };
-        let downloader = Downloader::new(&CLIENT, &file_info);
+        let downloader = Downloader::new(&CLIENT, file_info);
         downloader.download_file().await?;
     }
 
