@@ -18,7 +18,6 @@ use tokio::time;
 /// The wait time for a single download task.
 pub(crate) const DURATION: Duration = Duration::from_secs(10);
 
-#[derive(Clone)]
 pub(crate) struct FileInfo<'f> {
     /// The location where the file is stored.
     pub(crate) path: Cow<'f, Path>,
