@@ -40,8 +40,8 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
         let data = json_processer::read(Path::new(&file_path), &file_name).await?;
 
         if let Value::Object(obj) = &data["objects"] {
-            for (_, key) in obj {
-                if let Value::String(hash) = &key["hash"] {
+            for val in obj.values() {
+                if let Value::String(hash) = &val["hash"] {
                     let url = format!(
                         "{}/{}/{}",
                         match *DOWNLOAD_SOURCE.read().await {
