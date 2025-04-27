@@ -95,14 +95,10 @@ impl<'d, 'f: 'd> Downloader<'d, 'f> {
 Time out when waiting for response from remote server!
 File details:
     Name: {},
-    path: {},
     URL: {},
 Error details: {},
-                "#,
-                    self.file_info.name,
-                    self.file_info.path.to_string_lossy(),
-                    self.file_info.url,
-                    e
+                    "#,
+                    self.file_info.name, self.file_info.url, e
                 )));
             }
         };
