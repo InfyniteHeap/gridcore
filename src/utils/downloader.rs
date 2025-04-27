@@ -29,13 +29,13 @@ pub(crate) struct FileInfo<'f> {
     pub(crate) sha1: Option<Cow<'f, str>>,
 }
 
-pub(crate) struct Downloader<'d, 'f: 'd> {
-    client: &'d Client,
-    file_info: FileInfo<'f>,
+pub(crate) struct Downloader<'d> {
+    client: &'static Client,
+    file_info: FileInfo<'d>,
 }
 
-impl<'d, 'f: 'd> Downloader<'d, 'f> {
-    pub(crate) fn new(client: &'static Client, file_info: FileInfo<'f>) -> Self {
+impl<'d> Downloader<'d> {
+    pub(crate) fn new(client: &'static Client, file_info: FileInfo<'d>) -> Self {
         Self { client, file_info }
     }
 
