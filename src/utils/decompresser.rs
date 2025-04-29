@@ -2,6 +2,7 @@
 //!
 //! This module is used when decompressing native libraries.
 
+use crate::error_handling::DecompressError;
 use crate::file_system;
 
 use std::io::Read;
@@ -13,7 +14,7 @@ pub async fn decompress_file(
     file_path: &Path,
     file_name: &str,
     extract_path: &Path,
-) -> anyhow::Result<()> {
+) -> Result<(), DecompressError> {
     let file = file_system::open_file(file_path, file_name).await?;
     let mut archive = ZipArchive::new(file.into_std().await)?;
 

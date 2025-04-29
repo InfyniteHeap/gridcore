@@ -1,3 +1,4 @@
+use crate::error_handling::JsonError;
 use crate::path::MINECRAFT_ROOT;
 use crate::utils::json_processer;
 
@@ -7,7 +8,8 @@ use std::path::Path;
 use serde_json::{Map, Value};
 
 /// Reads contents in `version_manifest_v2.json`.
-pub(crate) async fn read_version_manifest() -> anyhow::Result<HashMap<String, Map<String, Value>>> {
+pub(crate) async fn read_version_manifest() -> Result<HashMap<String, Map<String, Value>>, JsonError>
+{
     let manifest_path = format!("{}/versions", MINECRAFT_ROOT);
     let manifest_name = "version_manifest_v2.json";
 
@@ -27,7 +29,7 @@ pub(crate) async fn read_version_manifest() -> anyhow::Result<HashMap<String, Ma
 }
 
 /// Lists Minecraft versions and lets frontend display them on UI interface.
-pub async fn list_versions() -> anyhow::Result<Vec<(String, String)>> {
+pub async fn list_versions() -> Result<Vec<(String, String)>, JsonError> {
     let version_manifest = read_version_manifest().await?;
 
     let mut versions = Vec::new();

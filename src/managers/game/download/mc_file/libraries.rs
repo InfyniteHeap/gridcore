@@ -1,4 +1,5 @@
-use crate::managers::game::download::{BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource};
+use crate::error_handling::DownloadError;
+use crate::managers::game::download::{BANGBANG93, CLIENT, DownloadSource};
 use crate::path::MINECRAFT_ROOT;
 use crate::utils::downloader::{Downloader, FileInfo};
 
@@ -8,7 +9,10 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
+pub(super) async fn download_libraries(
+    data: &Value,
+    src: DownloadSource,
+) -> Result<(), DownloadError> {
     let mut files = Vec::new();
 
     if let Value::Array(libs) = &data["libraries"] {
@@ -23,7 +27,7 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
                 ) {
                     let mut url = url.to_owned();
 
-                    if *DOWNLOAD_SOURCE.read().await == DownloadSource::Bangbang93 {
+                    if src == DownloadSource::Bangbang93 {
                         let idx = "https://libraries.minecraft.net/".len();
                         url = format!("{}/maven/{}", BANGBANG93, &url[idx..]);
                     }
@@ -62,7 +66,7 @@ pub(super) async fn download_libraries(data: &Value) -> anyhow::Result<()> {
                 ) {
                     let mut url = url.to_owned();
 
-                    if *DOWNLOAD_SOURCE.read().await == DownloadSource::Bangbang93 {
+                    if src == DownloadSource::Bangbang93 {
                         let idx = "https://libraries.minecraft.net/".len();
                         url = format!("{}/maven/{}", BANGBANG93, &url[idx..]);
                     }

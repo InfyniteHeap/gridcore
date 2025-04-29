@@ -1,3 +1,4 @@
+use crate::error_handling::LaunchError;
 use crate::path::{CONFIG_DIRECTORY, MINECRAFT_ROOT, PROFILE_FILE_NAME};
 use crate::utils::json_processer;
 
@@ -23,7 +24,10 @@ pub struct LaunchArguments {
 /// In general, you're no need to set this manually.
 pub struct Resolution(pub u16, pub u16);
 
-pub async fn generate_launch_args(version: &str, jvm_x_args: &str) -> anyhow::Result<Vec<String>> {
+pub async fn generate_launch_args(
+    version: &str,
+    jvm_x_args: &str,
+) -> Result<Vec<String>, LaunchError> {
     let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
     let manifest_path = Path::new(&manifest_path);
     let manifest_name = format!("{}.json", version);

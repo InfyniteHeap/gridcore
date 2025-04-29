@@ -1,3 +1,4 @@
+use crate::error_handling::DownloadError;
 use crate::managers::game::download::CLIENT;
 use crate::path::MINECRAFT_ROOT;
 use crate::utils::downloader::{Downloader, FileInfo};
@@ -7,7 +8,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
-pub(super) async fn download_logging_config(data: &Value) -> anyhow::Result<()> {
+pub(super) async fn download_logging_config(data: &Value) -> Result<(), DownloadError> {
     if let (Value::String(id), Value::String(sha1), Value::String(url)) = (
         &data["logging"]["client"]["file"]["id"],
         &data["logging"]["client"]["file"]["sha1"],

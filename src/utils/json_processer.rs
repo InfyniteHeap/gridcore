@@ -1,3 +1,4 @@
+use crate::error_handling::JsonError;
 use crate::file_system;
 
 use std::path::Path;
@@ -15,9 +16,9 @@ pub fn parse_from_string(json: &str) -> serde_json::Result<Value> {
 /// Parse JSON from string.
 ///
 /// This is usually used when parsing JSON stored on local machine.
-pub async fn read(json_path: &Path, json_name: &str) -> anyhow::Result<Value> {
+pub async fn read(json_path: &Path, json_name: &str) -> Result<Value, JsonError> {
     let json_file = file_system::read_file_to_string(json_path, json_name).await?;
-    Ok(parse_from_string(&json_file)?)
+    parse_from_string(&json_file).map_err(Into::into)
 }
 
 /// Convert an instance into serialized JSON data.

@@ -1,5 +1,6 @@
+use crate::error_handling::DownloadError;
 use crate::managers::game::download::{
-    ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DOWNLOAD_SOURCE, DownloadSource,
+    ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DownloadSource,
 };
 use crate::path::MINECRAFT_ROOT;
 use crate::utils::downloader::{Downloader, FileInfo};
@@ -10,7 +11,10 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
+pub(super) async fn download_assets(
+    data: &Value,
+    src: DownloadSource,
+) -> Result<(), DownloadError> {
     let mut files = Vec::new();
 
     if let (Value::String(id), Value::String(sha1), Value::String(url)) = (
@@ -20,7 +24,7 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
     ) {
         let mut url = url.to_owned();
 
-        if *DOWNLOAD_SOURCE.read().await == DownloadSource::Bangbang93 {
+        if src == DownloadSource::Bangbang93 {
             let len = "https://piston-meta.mojang.com/".len();
             url = format!("{}/{}", BANGBANG93, &url[len..])
         }
@@ -44,7 +48,7 @@ pub(super) async fn download_assets(data: &Value) -> anyhow::Result<()> {
                 if let Value::String(hash) = &val["hash"] {
                     let url = format!(
                         "{}/{}/{}",
-                        match *DOWNLOAD_SOURCE.read().await {
+                        match src {
                             DownloadSource::Official => ASSETS_OFFICIAL,
                             DownloadSource::Bangbang93 => ASSETS_BANGBANG93,
                         },

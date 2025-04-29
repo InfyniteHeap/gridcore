@@ -5,6 +5,7 @@
 //! Since Mojang has deprecated Mojang account verification method,
 //! this module exclusively supports Microsoft OAuth2.
 
+use crate::error_handling::JsonError;
 use crate::file_system;
 use crate::path::{CONFIG_DIRECTORY, PROFILE_FILE_NAME};
 use crate::utils::json_processer;
@@ -124,8 +125,7 @@ pub async fn request_xsts_authorization_response(
         }
     );
 
-    let response =
-        request_handler::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
+    let response = request_handler::send_post_request(XSTS_AUTHORIZE, Some(headers), &load).await?;
 
     Ok((
         json_processer::parse_from_string(&response).unwrap()["Token"]
@@ -198,7 +198,7 @@ impl MinecraftProfile {
         Ok(())
     }
 
-    pub async fn save_to_file(&self) -> anyhow::Result<()> {
+    pub async fn save_to_file(&self) -> Result<(), JsonError> {
         let contents = json_processer::convert_to_string(self)?;
 
         Ok(file_system::write_into_file(
