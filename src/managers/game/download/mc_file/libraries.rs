@@ -54,9 +54,8 @@ pub(super) async fn download_libraries(
                     };
 
                     files.push(file_info);
-
-                    // This seems only be compatible with versions older than 1.18.
-                } else if let (Value::String(path), Value::String(sha1), Value::String(url)) = (
+                }
+                if let (Value::String(path), Value::String(sha1), Value::String(url)) = (
                     &lib["downloads"]["classifiers"]
                         [&format!("natives-{}", OS.replace("macos", "osx"))]["path"],
                     &lib["downloads"]["classifiers"]
