@@ -68,16 +68,16 @@ impl<'d> Downloader<'d> {
         // If the value is equal to the given one,
         // We can confirm that this file is successfully
         // downloaded!
-        if let Some(sha1) = &self.file_info.sha1 {
-            if &sha1_checker::calculate_sha1(&self.file_info.path, &self.file_info.name).await?
-                == sha1
-            {
-                Ok(())
-            } else {
-                Err(DownloadError::CheckIntegrityError)
-            }
-        } else {
+        if sha1_checker::check_sha1(
+            &self.file_info.path,
+            &self.file_info.name,
+            self.file_info.sha1.as_deref(),
+        )
+        .await?
+        {
             Ok(())
+        } else {
+            Err(DownloadError::CheckIntegrityError)
         }
     }
 

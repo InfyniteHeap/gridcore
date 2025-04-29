@@ -21,3 +21,19 @@ pub async fn calculate_sha1(file_path: &Path, file_name: &str) -> io::Result<Str
 
     Ok(format!("{:x}", hasher.finalize()))
 }
+
+pub async fn check_sha1(
+    file_path: &Path,
+    file_name: &str,
+    sha1: Option<&str>,
+) -> Result<bool, io::Error> {
+    if let Some(sha1) = sha1 {
+        if calculate_sha1(file_path, file_name).await? == sha1 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    } else {
+        Ok(true)
+    }
+}
