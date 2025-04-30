@@ -41,7 +41,7 @@ pub(super) async fn download_assets(
         let downloader = Downloader::new(&CLIENT, file_info);
         downloader.download_file().await?;
 
-        let data = json_processer::read(Path::new(&file_path), &file_name).await?;
+        let data = json_processer::read(&file_path, &file_name).await?;
 
         if let Value::Object(obj) = &data["objects"] {
             for val in obj.values() {

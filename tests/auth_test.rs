@@ -29,7 +29,7 @@ async fn login_test() {
     profile.request_uuid_and_username_response().await.unwrap();
     profile.save_to_file().await.unwrap();
 
-    let profile = json_processer::read(Path::new(CONFIG_DIRECTORY), "profile.json")
+    let profile = json_processer::read(&CONFIG_DIRECTORY, "profile.json")
         .await
         .unwrap();
     println!("{}", profile);

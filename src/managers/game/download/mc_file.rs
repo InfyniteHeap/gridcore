@@ -8,8 +8,6 @@ use crate::error_handling::DownloadError;
 use crate::path::MINECRAFT_ROOT;
 use crate::utils::json_processer;
 
-use std::path::Path;
-
 /// Downloads Minecraft.
 pub async fn download_files(
     ver: &str,
@@ -19,7 +17,7 @@ pub async fn download_files(
     let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, ver);
     let manifest_name = format!("{}.json", ver);
 
-    let data = json_processer::read(Path::new(&manifest_path), &manifest_name).await?;
+    let data = json_processer::read(&manifest_path, &manifest_name).await?;
 
     // let download_manifest = Vec::new();
 

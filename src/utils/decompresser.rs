@@ -10,10 +10,10 @@ use std::path::Path;
 
 use zip::ZipArchive;
 
-pub async fn decompress_file(
-    file_path: &Path,
+pub async fn decompress_file<P: AsRef<Path>>(
+    file_path: &P,
     file_name: &str,
-    extract_path: &Path,
+    extract_path: &P,
 ) -> Result<(), DecompressError> {
     let file = file_system::open_file(file_path, file_name).await?;
     let mut archive = ZipArchive::new(file.into_std().await)?;

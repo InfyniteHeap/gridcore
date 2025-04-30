@@ -4,7 +4,6 @@ use crate::utils::json_processer;
 
 use std::collections::HashMap;
 use std::env::consts::{ARCH, OS};
-use std::path::Path;
 use std::process::Command;
 
 use regex::Regex;
@@ -29,10 +28,9 @@ pub async fn generate_launch_args(
     jvm_x_args: &str,
 ) -> Result<Vec<String>, LaunchError> {
     let manifest_path = format!("{}/versions/{}", MINECRAFT_ROOT, version);
-    let manifest_path = Path::new(&manifest_path);
     let manifest_name = format!("{}.json", version);
 
-    let data = json_processer::read(manifest_path, &manifest_name).await?;
+    let data = json_processer::read(&manifest_path, &manifest_name).await?;
     let mut launch_args = LaunchArguments::default();
 
     // Get original launch arguments from JSON.
@@ -104,7 +102,7 @@ pub async fn generate_launch_args(
     // We first handle jvm arguments.
 
     // Then handle game arguments.
-    let profile = json_processer::read(Path::new(CONFIG_DIRECTORY), PROFILE_FILE_NAME).await?;
+    let profile = json_processer::read(&CONFIG_DIRECTORY, PROFILE_FILE_NAME).await?;
 
     let mut game_args = HashMap::with_capacity(CONFIG_NUMS);
     game_args.insert(

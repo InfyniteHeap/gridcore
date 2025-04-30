@@ -12,7 +12,6 @@ use crate::utils::json_processer;
 use crate::utils::request_handler;
 
 use std::collections::HashMap;
-use std::path::Path;
 
 use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Serialize;
@@ -201,11 +200,9 @@ impl MinecraftProfile {
     pub async fn save_to_file(&self) -> Result<(), JsonError> {
         let contents = json_processer::convert_to_string(self)?;
 
-        Ok(file_system::write_into_file(
-            Path::new(CONFIG_DIRECTORY),
-            PROFILE_FILE_NAME,
-            contents.as_bytes(),
+        Ok(
+            file_system::write_into_file(&CONFIG_DIRECTORY, PROFILE_FILE_NAME, contents.as_bytes())
+                .await?,
         )
-        .await?)
     }
 }

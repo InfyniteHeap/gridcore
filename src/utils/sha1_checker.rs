@@ -9,7 +9,7 @@ use tokio::io::AsyncReadExt;
 // The average size of files is about 256 KiB.
 const CAPACITY: usize = 0x4_0000;
 
-pub async fn calculate_sha1(file_path: &Path, file_name: &str) -> io::Result<String> {
+pub async fn calculate_sha1<P: AsRef<Path>>(file_path: &P, file_name: &str) -> io::Result<String> {
     let mut file = file_system::open_file(file_path, file_name).await?;
 
     let mut hasher = Sha1::new();
@@ -22,8 +22,8 @@ pub async fn calculate_sha1(file_path: &Path, file_name: &str) -> io::Result<Str
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-pub async fn check_sha1(
-    file_path: &Path,
+pub async fn check_sha1<P: AsRef<Path>>(
+    file_path: &P,
     file_name: &str,
     sha1: Option<&str>,
 ) -> Result<bool, io::Error> {
