@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use gridcore::utils::sha1_checker;
 
 #[ignore = "This test case must be manually tested on local machine."]

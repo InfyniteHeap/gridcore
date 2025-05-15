@@ -1,5 +1,5 @@
+use crate::constants::{CONFIG_DIRECTORY, MINECRAFT_ROOT, PROFILE_FILE_NAME};
 use crate::error_handling::LaunchError;
-use crate::path::{CONFIG_DIRECTORY, MINECRAFT_ROOT, PROFILE_FILE_NAME};
 use crate::utils::json_processer;
 
 use std::collections::HashMap;

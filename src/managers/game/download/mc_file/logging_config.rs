@@ -1,7 +1,6 @@
+use crate::constants::MINECRAFT_ROOT;
 use crate::error_handling::DownloadError;
-use crate::managers::game::download::CLIENT;
-use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{Downloader, FileInfo};
+use crate::utils::downloader::{CLIENT, Downloader, FileInfo};
 
 use std::borrow::Cow;
 use std::path::Path;

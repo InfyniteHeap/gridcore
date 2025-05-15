@@ -5,9 +5,9 @@
 //! Since Mojang has deprecated Mojang account verification method,
 //! this module exclusively supports Microsoft OAuth2.
 
+use crate::constants::{CONFIG_DIRECTORY, PROFILE_FILE_NAME};
 use crate::error_handling::JsonError;
 use crate::file_system;
-use crate::path::{CONFIG_DIRECTORY, PROFILE_FILE_NAME};
 use crate::utils::json_processer;
 use crate::utils::request_handler;
 

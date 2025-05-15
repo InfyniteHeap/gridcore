@@ -3,9 +3,8 @@ mod jar;
 mod libraries;
 mod logging_config;
 
-use super::{Category, DownloadSource};
+use crate::constants::{Category, DownloadSource, MINECRAFT_ROOT};
 use crate::error_handling::DownloadError;
-use crate::path::MINECRAFT_ROOT;
 use crate::utils::json_processer;
 
 /// Downloads Minecraft.

@@ -10,11 +10,14 @@ use crate::utils::sha1_checker;
 
 use std::borrow::Cow;
 use std::path::Path;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
 use reqwest::{Client, Response};
 use tokio::time;
 
+/// The global-shared client.
+pub(crate) static CLIENT: LazyLock<Arc<Client>> = LazyLock::new(|| Arc::new(Client::new()));
 /// The wait time for a single download task.
 pub(crate) const DURATION: Duration = Duration::from_secs(10);
 

@@ -1,5 +1,5 @@
+use crate::constants::{CONFIG_DIRECTORY, CONFIG_FILE_NAME};
 use crate::file_system;
-use crate::path::{CONFIG_DIRECTORY, CONFIG_FILE_NAME};
 
 use std::io;
 

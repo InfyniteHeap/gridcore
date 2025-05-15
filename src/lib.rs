@@ -4,10 +4,10 @@
 
 pub mod auth;
 pub mod config;
+pub mod constants;
 pub mod error_handling;
 pub mod file_system;
 pub mod managers;
-pub mod path;
 pub mod utils;
 
 // Bingo! Dear contributor, if you also play Genshin Impact,

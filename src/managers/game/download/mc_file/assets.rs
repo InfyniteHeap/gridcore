@@ -1,9 +1,8 @@
-use crate::error_handling::DownloadError;
-use crate::managers::game::download::{
-    ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, CLIENT, DownloadSource,
+use crate::constants::{
+    ASSETS_BANGBANG93, ASSETS_OFFICIAL, BANGBANG93, DownloadSource, MINECRAFT_ROOT,
 };
-use crate::path::MINECRAFT_ROOT;
-use crate::utils::downloader::{Downloader, FileInfo};
+use crate::error_handling::DownloadError;
+use crate::utils::downloader::{CLIENT, Downloader, FileInfo};
 use crate::utils::json_processer;
 
 use std::borrow::Cow;

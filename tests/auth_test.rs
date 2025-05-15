@@ -1,8 +1,6 @@
 use gridcore::auth::{self, MinecraftProfile};
-use gridcore::path::CONFIG_DIRECTORY;
+use gridcore::constants::CONFIG_DIRECTORY;
 use gridcore::utils::json_processer;
-
-use std::path::Path;
 
 #[ignore = "This test case must be manually tested on local machine."]
 #[tokio::test]
