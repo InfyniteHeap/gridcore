@@ -4,13 +4,11 @@
 
 use std::fmt::Display;
 
-#[cfg(target_os = "windows")]
-pub const MINECRAFT_ROOT: &str = "./.minecraft";
 
 #[cfg(target_os = "macos")]
 pub const MINECRAFT_ROOT: &str = "./minecraft";
 
-#[cfg(target_os = "linux")]
+#[cfg(not(target_os = "macos"))]
 pub const MINECRAFT_ROOT: &str = "./.minecraft";
 
 pub const CONFIG_DIRECTORY: &str = "./config";
