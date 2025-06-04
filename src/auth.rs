@@ -200,9 +200,8 @@ impl MinecraftProfile {
     pub async fn save_to_file(&self) -> Result<(), JsonError> {
         let contents = json_processer::convert_to_string(self)?;
 
-        Ok(
-            file_system::write_into_file(&CONFIG_DIRECTORY, PROFILE_FILE_NAME, contents.as_bytes())
-                .await?,
-        )
+        file_system::write_into_file(&CONFIG_DIRECTORY, PROFILE_FILE_NAME, contents.as_bytes())
+            .await
+            .map_err(|e| e.into())
     }
 }
