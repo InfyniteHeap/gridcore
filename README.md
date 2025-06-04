@@ -1,8 +1,11 @@
-> This crate is under development.
+> This project is under development.
 
 # gridcore
 
-The core of Grid Craft Launcher, yet is not limited to that!
+The core implementation of Grid Craft Launcher, yet not limited to that!
+
+You can choose either directly using it as a command line program, or
+integrating it into to your project as a dependency!
 
 ## Features
 
@@ -14,14 +17,23 @@ The core of Grid Craft Launcher, yet is not limited to that!
 
 ## Usage
 
-Add this crate in your `Cargo.toml` file under `[dependencies]` table:
+### As A Command Line Tool
+
+run `grid-cli --help` to get usages.
+
+### As A Dependency
+
+Add this crate to your `Cargo.toml` file under `[dependencies]` table:
 
 ```toml
-[dependencies]
 gridcore = "0.1.0"
 ```
 
-Most usages can be found in `tests` folder.
+Or let Cargo helps you:
+
+```bash
+cargo add gridcore
+```
 
 ## License
 
