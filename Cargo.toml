@@ -19,7 +19,7 @@ tokio = { version = "1", features = [
   "signal",
 ] }
 toml = "0.8"
-zip = "3"
+zip = "4"
 
 [profile.dev]
 incremental = true
