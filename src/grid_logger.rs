@@ -8,6 +8,7 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 
 const LOGGING_DIR: &str = "./logs";
 const LOGGING_FILE_NAME: &str = "grid_log.txt";
+const MAX_SINGLE_LOGGING_FILE_SIZE: u64 = 1_048_576; //1MiB
 
 pub struct GridLogger;
 static LOGGER: GridLogger = GridLogger;
@@ -55,15 +56,34 @@ impl GridLogger {
         );
 
         let logging_dir = Path::new(LOGGING_DIR);
+        let logging_file_path = logging_dir.join(LOGGING_FILE_NAME);
+
         if !logging_dir.exists() {
             fs::create_dir_all(logging_dir).unwrap();
         }
 
-        let mut logging_file = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(logging_dir.join(LOGGING_FILE_NAME))
+        let open_logging_file = || {
+            OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(&logging_file_path)
+                .unwrap()
+        };
+
+        let mut logging_file = open_logging_file();
+
+        if logging_file.metadata().unwrap().len() >= MAX_SINGLE_LOGGING_FILE_SIZE {
+            let existing_file_count = fs::read_dir(logging_dir).unwrap().count();
+
+            fs::rename(&logging_file_path, {
+                let path = logging_file_path.to_string_lossy();
+                let new_path = format!("{path}.{existing_file_count}");
+                new_path
+            })
             .unwrap();
+
+            logging_file = open_logging_file();
+        }
 
         writeln!(logging_file, "{formatted_message}").unwrap();
     }
