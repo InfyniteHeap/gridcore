@@ -89,3 +89,18 @@ impl Log for GridLogger {
 
     fn flush(&self) {}
 }
+
+mod test {
+    #[test]
+    fn test_logging() {
+        use super::GridLogger;
+
+        GridLogger::init();
+
+        log::trace!("This is a trace message.");
+        log::debug!("This is a debug message.");
+        log::info!("This is an info message.");
+        log::warn!("This is a warning message.");
+        log::error!("This is an error message!");
+    }
+}
