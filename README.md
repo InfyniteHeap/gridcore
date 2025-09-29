@@ -4,18 +4,16 @@
 
 # gridcore
 
-The core implementation of Grid Craft Launcher, yet not limited to that!
-
-You can choose either directly using it as a command line program, or
-integrating it into to your project as a dependency!
+A Minecraft launcher core that is used to implement core functions for Grid
+Craft Launcher.
 
 ## Features
 
-**A completely asynchronous core**!
-
-- Powered by [Tokio](https://tokio.rs/), gridcore runs fast and effective!
-
-**An effective core!**
+- Simple and light-weight.
+- Built from scratch.
+- Completely implemented in Rust.
+- Easy to use.
+- High performance, without blocking any tasks.
 
 ## Usage
 
@@ -31,7 +29,7 @@ Add this crate to your `Cargo.toml` file under `[dependencies]` table:
 gridcore = "0.1.0"
 ```
 
-Or let Cargo helps you:
+Or let Cargo help you:
 
 ```bash
 cargo add gridcore
