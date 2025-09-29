@@ -1,4 +1,6 @@
-> This project is under development.
+> [!WARNING]
+> This project is waiting for being refactored, as its structure and bygone Git
+> commit history is too unreasonable and chaoic to be maintained.
 
 # gridcore
 
